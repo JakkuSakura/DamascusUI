@@ -2,15 +2,15 @@ use std::fs;
 use std::process::Command;
 
 fn main() {
-    // Bundle frontend (ts/dist → embedded by static_files.rs)
-    let ts_dist = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../ts/dist");
+    // Bundle frontend (ui/dist → embedded by static_files.rs)
+    let ts_dist = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../ui/dist");
     if ts_dist.exists() {
-        println!("cargo:warning=bundling frontend from ts/dist");
-        println!("cargo:rerun-if-changed=../ts/dist");
+        println!("cargo:warning=bundling frontend from ui/dist");
+        println!("cargo:rerun-if-changed=../ui/dist");
     }
 
-    // Bundle viewer (copy entire csharp/publish → viewer-binary/)
-    let csharp_publish = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../csharp/publish");
+    // Bundle viewer (copy entire viewer/publish → viewer-binary/)
+    let csharp_publish = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../viewer/publish");
     let embed_dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("viewer-binary");
 
     if csharp_publish.exists() {
@@ -31,7 +31,7 @@ fn main() {
                 .unwrap();
         }
 
-        println!("cargo:warning=viewer bundled from csharp/publish");
-        println!("cargo:rerun-if-changed=../csharp/publish");
+        println!("cargo:warning=viewer bundled from viewer/publish");
+        println!("cargo:rerun-if-changed=../viewer/publish");
     }
 }

@@ -54,9 +54,9 @@ fn run_codegen(path: &str) {
     let out = codegen::generate(&name, &src);
     let root = Path::new(path).parent().unwrap_or(Path::new("."));
 
-    let rs_dir = root.join("../../rs/src/codegen");
-    let ts_dir = root.join("../../ts/src/codegen");
-    let cs_dir = root.join("../../csharp/codegen");
+    let rs_dir = root.join("../../core/src/codegen");
+    let ts_dir = root.join("../../ui/src/codegen");
+    let cs_dir = root.join("../../viewer/codegen");
 
     fs::create_dir_all(&rs_dir).ok();
     fs::create_dir_all(&ts_dir).ok();
@@ -66,9 +66,9 @@ fn run_codegen(path: &str) {
     fs::write(ts_dir.join(format!("{name}.ts")), &out.typescript).unwrap();
     fs::write(cs_dir.join(format!("{}.cs", pascal(&name))), &out.csharp).unwrap();
 
-    println!("  ✓ rs/src/codegen/{name}.rs");
-    println!("  ✓ ts/src/codegen/{name}.ts");
-    println!("  ✓ csharp/codegen/{}.cs", pascal(&name));
+    println!("  ✓ core/src/codegen/{name}.rs");
+    println!("  ✓ ui/src/codegen/{name}.ts");
+    println!("  ✓ viewer/codegen/{}.cs", pascal(&name));
 }
 
 fn pascal(s: &str) -> String {

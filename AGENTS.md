@@ -59,12 +59,12 @@ Avalonia ──┘   (webview)
 
 | Path | Purpose |
 |------|---------|
-| `rs/src/lib.rs` | Framework crate root |
-| `rs/src/main.rs` | CLI binary (codegen + serve) |
-| `rs/src/app.rs` | `App` / `AppBuilder` |
-| `rs/src/prelude.rs` | Re-exports for user code |
-| `rs/src/protocol.rs` | Shared protocol types |
-| `rs/src/codegen.rs` | WIT → Rust/TS/C# generator |
-| `ts/src/codegen/` | Generated TS API clients |
-| `csharp/codegen/` | Generated C# API clients |
+| `core/src/lib.rs` | Framework crate root |
+| `core/src/main.rs` | CLI binary (codegen + serve) |
+| `core/src/app.rs` | `App` / `AppBuilder` |
+| `core/src/prelude.rs` | Re-exports for user code |
+| `core/src/protocol.rs` | Shared protocol types |
+| `core/src/codegen.rs` | WIT → Rust/TS/C# generator |
+| `ui/src/codegen/` | Generated TS API clients |
+| `viewer/codegen/` | Generated C# API clients |
 | `wit/` | Framework WIT protocols |

@@ -26,7 +26,7 @@ build-fe:
 
 # Build example todos backend
 build-todos:
-    cargo build -p todos-backend
+    cargo build -p todos
 
 # Build example todos frontend
 build-todos-fe:
@@ -46,7 +46,7 @@ build-all: build-fe build-viewer
 check:
     cargo check -p damascus
     cargo check -p damascus --no-default-features -F tokio
-    cargo check -p todos-backend
+    cargo check -p todos
 
 # Type-check frontend
 check-fe:
@@ -68,14 +68,14 @@ dev-viewer:
 
 # Start example todos backend
 dev-todos:
-    cargo run -p todos-backend
+    cargo run -p todos
 
 # Full-stack dev: Vite HMR + Rust backend with watch
 dev *args=".":
     @echo "==> Starting full-stack dev mode"
     @echo "    Frontend: http://localhost:3000"
     @echo "    Backend:  http://localhost:3001"
-    cargo watch -w rs/src -x "run -p damascus -- serve" &
+    cargo watch -w core/src -x "run -p damascus -- serve" &
     cd ts && pnpm dev
 
 # ── Codegen ────────────────────────────────────────────────────────────────────
@@ -106,7 +106,7 @@ clean:
 
 # Remove frontend build output
 clean-fe:
-    rm -rf ts/dist examples/todos/frontend/dist
+    rm -rf ui/dist examples/todos/ui/dist
 
 # Remove all build artifacts
 clean-all: clean clean-fe

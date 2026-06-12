@@ -22,13 +22,13 @@ Rust Backend (compio or tokio)
 
 ```
 DamascusUI/
-├── rs/          # Rust core framework (compio or tokio runtime)
-├── ts/          # SolidJS web frontend (primary UI)
-├── csharp/      # Avalonia desktop viewer (WebView shell)
+├── core/          # Rust core framework (compio or tokio runtime)
+├── ui/          # SolidJS web frontend (primary UI)
+├── viewer/      # Avalonia desktop viewer (WebView shell)
 ├── wit/         # WIT protocol definitions (types, render, input, lifecycle)
 ├── examples/    # Example applications
 │   └── todos/   # Full-stack todo app (Rust API + SolidJS + TailwindCSS)
-├── scripts/     # Build and codegen scripts
+├── scripui/     # Build and codegen scripts
 └── docs/        # Architecture and design docs
 ```
 

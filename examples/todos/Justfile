@@ -5,39 +5,39 @@ default:
 
 # ── Build ──────────────────────────────────────────────────────────────────────
 
-# Build frontend
+# Build ui
 build-fe:
-    cd frontend && pnpm build
+    cd ui && pnpm build
 
-# Build everything (frontend → viewer → backend)
+# Build everything (ui → viewer → backend)
 build: build-fe
-    cd ../.. && just build-viewer
-    cargo build -p todos-backend
+    cd ../../../ cd ../.. &&cd ../.. && just build-viewer
+    cargo build -p todos
 
 # ── Run ────────────────────────────────────────────────────────────────────────
 
 # Build and run the packaged app
 run: build
-    cargo run -p todos-backend
+    cargo run -p todos
 
 # Run without rebuilding
 run-fast:
-    cargo run -p todos-backend
+    cargo run -p todos
 
 # ── Dev ────────────────────────────────────────────────────────────────────────
 
-# Start backend (API + embedded frontend, auto-launches viewer)
+# Start backend (API + embedded ui, auto-launches viewer)
 dev:
-    cargo run -p todos-backend
+    cargo run -p todos
 
-# Start frontend dev server only (Vite HMR at :5173)
+# Start ui dev server only (Vite HMR at :5173)
 dev-fe:
-    cd frontend && pnpm dev
+    cd ui && pnpm dev
 
 # ── Check ──────────────────────────────────────────────────────────────────────
 
 check:
-    cargo check -p todos-backend
+    cargo check -p todos
 
 # ── Clean ──────────────────────────────────────────────────────────────────────
 
@@ -45,4 +45,4 @@ clean:
     cargo clean
 
 clean-fe:
-    rm -rf frontend/dist frontend/node_modules
+    rm -rf ui/dist ui/node_modules

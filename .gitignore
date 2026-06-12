@@ -4,16 +4,16 @@
 /dist/
 
 # C# / .NET
-/csharp/bin/
-/csharp/obj/
+/viewer/bin/
+/viewer/obj/
 *.user
 *.suo
 *.vs/
 
 # Node / TypeScript
 /node_modules/
-/ts/node_modules/
-/ts/dist/
+/ui/node_modules/
+/ui/dist/
 **/node_modules/
 **/dist/
 *.tsbuildinfo
@@ -37,7 +37,7 @@ logs/
 # Misc
 .cache
 /tmp/
-artifacts/
+artifacui/
 *.png
 **/viewer-binary/
-csharp/publish/
+viewer/publish/

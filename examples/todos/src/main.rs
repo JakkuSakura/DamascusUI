@@ -7,7 +7,7 @@ use damascus::prelude::*;
 use damascus::{App, Config};
 
 #[derive(RustEmbed)]
-#[folder = "../frontend/dist"]
+#[folder = "ui/dist"]
 struct Frontend;
 
 async fn serve_frontend(uri: damascus::axum::http::Uri) -> impl IntoResponse {

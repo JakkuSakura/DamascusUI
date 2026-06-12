@@ -6,7 +6,7 @@ use axum::{
 };
 
 #[derive(RustEmbed)]
-#[folder = "../ts/dist"]
+#[folder = "../ui/dist"]
 pub struct Frontend;
 
 pub async fn serve_static(uri: axum::http::Uri) -> impl IntoResponse {

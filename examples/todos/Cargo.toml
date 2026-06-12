@@ -1,3 +1,14 @@
-[workspace]
-members = ["backend"]
-resolver = "2"
+[package]
+name = "todos"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+damascus = { path = "../../core", default-features = false, features = ["tokio"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+rust-embed = "8"
+mime_guess = "2"
+
+[build-dependencies]
