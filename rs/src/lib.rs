@@ -2,6 +2,7 @@ pub mod app;
 pub mod config;
 pub mod prelude;
 pub mod protocol;
+pub mod static_files;
 
 mod serve;
 

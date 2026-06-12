@@ -1,4 +1,4 @@
-//! Damascus CLI — codegen and server launcher.
+//! Damascus CLI — codegen, serve, and single-binary frontend.
 
 mod codegen;
 
@@ -21,16 +21,34 @@ fn main() {
             }
             run_codegen(&args[2]);
         }
-        "serve" => {
-            tracing_subscriber::fmt::init();
-            let app = damascus::App::builder()
-                .config(damascus::Config::new().port(3000))
-                .route("/health", axum::routing::get(|| async { "ok" }))
-                .build();
-            app.run().unwrap();
-        }
+        "serve" => serve(),
         _ => eprintln!("unknown command: {}", args[1]),
     }
+}
+
+#[cfg(feature = "tokio")]
+fn serve() {
+    tracing_subscriber::fmt::init();
+    let app = axum::Router::new()
+        .route("/health", axum::routing::get(|| async { "ok" }))
+        .fallback(damascus::static_files::serve_static);
+
+    let config = damascus::Config::new().port(3000);
+    let addr = config.addr();
+    let rt = tokio::runtime::Builder::new_multi_thread()
+        .enable_all()
+        .build()
+        .unwrap();
+    rt.block_on(async {
+        let listener = tokio::net::TcpListener::bind(&addr).await.unwrap();
+        tracing::info!("DamascusUI listening on http://{addr}");
+        axum::serve(listener, app).await.unwrap();
+    });
+}
+
+#[cfg(not(feature = "tokio"))]
+fn serve() {
+    eprintln!("serve requires the 'tokio' feature. Rebuild with: cargo build -F tokio");
 }
 
 fn run_codegen(path: &str) {
