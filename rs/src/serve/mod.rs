@@ -1,6 +1,10 @@
-use std::thread;
-
 use axum::Router;
+
+#[cfg(feature = "tokio")]
+use tokio::net::TcpListener;
+
+#[cfg(feature = "tokio")]
+use std::thread;
 
 use crate::config::Config;
 use crate::error::Result;
@@ -14,7 +18,6 @@ pub fn serve(router: Router, config: &Config) -> Result<()> {
         .enable_all()
         .build()?;
 
-    // Try to launch the desktop viewer
     let shutdown = viewer::try_launch().map(|(mut child, notify)| {
         let notify_clone = notify.clone();
         thread::spawn(move || {
@@ -25,8 +28,8 @@ pub fn serve(router: Router, config: &Config) -> Result<()> {
     });
 
     rt.block_on(async {
-        let listener = tokio::net::TcpListener::bind(config.addr()).await?;
-        tracing::info!("DamascusUI listening on http://{}", config.addr());
+        let (listener, addr) = bind_with_fallback(config).await?;
+        tracing::info!("DamascusUI listening on http://{addr}");
 
         let app = router;
 
@@ -39,6 +42,23 @@ pub fn serve(router: Router, config: &Config) -> Result<()> {
         }
 
         Ok(())
+    })
+}
+
+#[cfg(feature = "tokio")]
+async fn bind_with_fallback(config: &Config) -> Result<(TcpListener, String)> {
+    let port = config.port;
+    for offset in 0..100 {
+        let candidate = format!("{}:{}", config.host, port + offset);
+        match TcpListener::bind(&candidate).await {
+            Ok(listener) => return Ok((listener, candidate)),
+            Err(e) if e.kind() == std::io::ErrorKind::AddrInUse => continue,
+            Err(e) => return Err(e.into()),
+        }
+    }
+    Err(crate::error::Error::Bind {
+        addr: format!("{}:{}-{}", config.host, port, port + 99),
+        source: std::io::Error::new(std::io::ErrorKind::AddrInUse, "all ports in range busy"),
     })
 }
 
