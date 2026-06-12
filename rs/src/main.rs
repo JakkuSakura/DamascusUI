@@ -1,4 +1,4 @@
-//! Damascus CLI — codegen, serve, and single-binary frontend.
+//! Damascus CLI — codegen and server launcher.
 
 mod codegen;
 
@@ -28,67 +28,13 @@ fn main() {
 
 #[cfg(feature = "tokio")]
 fn serve() {
-    use std::process::Command;
-    use std::sync::Arc;
-    use tokio::sync::Notify;
-
     tracing_subscriber::fmt::init();
-    let config = damascus::Config::new().port(3000);
-
     let app = axum::Router::new()
         .route("/health", axum::routing::get(|| async { "ok" }))
         .fallback(damascus::static_files::serve_static);
 
-    // Try to launch the Avalonia desktop viewer
-    let viewer = find_viewer_binary()
-        .and_then(|path| Command::new(&path).spawn().ok());
-
-    if viewer.is_some() {
-        tracing::info!("Launched desktop viewer");
-    }
-
-    let addr = config.addr();
-    let rt = tokio::runtime::Builder::new_multi_thread()
-        .enable_all()
-        .build()
-        .unwrap();
-
-    let shutdown = Arc::new(Notify::new());
-    let shutdown_clone = shutdown.clone();
-
-    // Watch the viewer process — when it exits, shut down the server
-    if let Some(mut child) = viewer {
-        std::thread::spawn(move || {
-            let _ = child.wait();
-            shutdown_clone.notify_one();
-        });
-    }
-
-    rt.block_on(async {
-        let listener = tokio::net::TcpListener::bind(&addr).await.unwrap();
-        tracing::info!("DamascusUI listening on http://{addr}");
-
-        axum::serve(listener, app)
-            .with_graceful_shutdown(async move { shutdown.notified().await })
-            .await
-            .unwrap();
-    });
-}
-
-fn find_viewer_binary() -> Option<std::path::PathBuf> {
-    let exe = std::env::current_exe().ok()?;
-    let dir = exe.parent()?;
-
-    let base = if cfg!(target_os = "windows") { "DamascusUI.exe" } else { "DamascusUI" };
-
-    let candidates = [
-        dir.join("../../../csharp/bin/Debug/net10.0").join(base),
-        dir.join("../../../csharp/bin/Release/net10.0").join(base),
-        dir.join("../csharp/bin/Debug/net10.0").join(base),
-        dir.join("../csharp/bin/Release/net10.0").join(base),
-    ];
-
-    candidates.into_iter().find(|p| p.exists())
+    let config = damascus::Config::new().port(3000);
+    damascus::serve::serve(app, &config).unwrap();
 }
 
 #[cfg(not(feature = "tokio"))]
