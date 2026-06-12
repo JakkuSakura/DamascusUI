@@ -10,3 +10,6 @@ pub use app::App;
 pub use config::Config;
 pub use tracing;
 pub use tracing_subscriber;
+
+#[cfg(feature = "tokio")]
+pub use axum;

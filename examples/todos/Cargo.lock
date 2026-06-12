@@ -670,6 +670,8 @@ name = "todos-backend"
 version = "0.1.0"
 dependencies = [
  "damascus",
+ "mime_guess",
+ "rust-embed",
  "serde",
  "serde_json",
 ]

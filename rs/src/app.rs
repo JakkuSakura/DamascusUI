@@ -88,6 +88,17 @@ impl AppBuilder {
             config: self.config,
         }
     }
+
+    /// Set a fallback handler for routes that don't match any registered route.
+    /// Use this to serve a bundled SPA frontend.
+    pub fn fallback<H, T>(mut self, handler: H) -> Self
+    where
+        H: axum::handler::Handler<T, ()>,
+        T: 'static,
+    {
+        self.router = self.router.fallback(handler);
+        self
+    }
 }
 
 impl Default for AppBuilder {

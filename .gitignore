@@ -14,8 +14,11 @@
 /node_modules/
 /ts/node_modules/
 /ts/dist/
+**/node_modules/
+**/dist/
 *.tsbuildinfo
 pnpm-lock.yaml
+**/pnpm-workspace.yaml
 
 # IDE
 .idea/
