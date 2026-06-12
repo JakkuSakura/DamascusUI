@@ -30,10 +30,13 @@ fn find_viewer_binary() -> Option<PathBuf> {
     let base = if cfg!(target_os = "windows") { "DamascusUI.exe" } else { "DamascusUI" };
 
     let candidates = [
+        // From workspace root rs/target/debug/damascus
         dir.join("../../../csharp/bin/Debug/net10.0").join(base),
         dir.join("../../../csharp/bin/Release/net10.0").join(base),
-        dir.join("../csharp/bin/Debug/net10.0").join(base),
-        dir.join("../csharp/bin/Release/net10.0").join(base),
+        // From examples/todos/target/debug/todos-backend
+        dir.join("../../../../csharp/bin/Debug/net10.0").join(base),
+        dir.join("../../../../csharp/bin/Release/net10.0").join(base),
+        // Same directory
         dir.join(base),
     ];
 
