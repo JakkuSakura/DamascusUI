@@ -1,0 +1,45 @@
+set shell := ["zsh", "-cu"]
+
+default:
+    @just --list
+
+# ── Build ──────────────────────────────────────────────────────────────────────
+
+build:
+    cargo build -p todos-backend
+
+build-fe:
+    cd frontend && pnpm build
+
+# ── Run ────────────────────────────────────────────────────────────────────────
+
+# Build and run the packaged app (API + embedded frontend on :3001)
+run: build-fe
+    cargo run -p todos-backend
+
+# Run without rebuilding frontend
+run-fast:
+    cargo run -p todos-backend
+
+# ── Dev ────────────────────────────────────────────────────────────────────────
+
+# Start backend (API + embedded frontend on :3001, auto-launches viewer)
+dev:
+    cargo run -p todos-backend
+
+# Start frontend dev server only (Vite HMR at :5173)
+dev-fe:
+    cd frontend && pnpm dev
+
+# ── Check ──────────────────────────────────────────────────────────────────────
+
+check:
+    cargo check -p todos-backend
+
+# ── Clean ──────────────────────────────────────────────────────────────────────
+
+clean:
+    cargo clean
+
+clean-fe:
+    rm -rf frontend/dist frontend/node_modules
