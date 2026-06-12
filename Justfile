@@ -37,7 +37,11 @@ build-all: build build-fe build-viewer build-todos build-todos-fe
 
 # Build Avalonia desktop viewer
 build-viewer:
-    cd csharp && dotnet build
+    cd csharp && dotnet publish -c Release -o publish
+
+# Build everything (frontend → viewer → Rust)
+build-all: build-fe build-viewer
+    cargo build -p damascus --no-default-features -F tokio
 
 # ── Check ──────────────────────────────────────────────────────────────────────
 

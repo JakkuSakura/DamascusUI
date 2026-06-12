@@ -5,25 +5,28 @@ default:
 
 # ── Build ──────────────────────────────────────────────────────────────────────
 
-build:
-    cargo build -p todos-backend
-
+# Build frontend
 build-fe:
     cd frontend && pnpm build
 
+# Build everything (frontend → viewer → backend)
+build: build-fe
+    cd ../.. && just build-viewer
+    cargo build -p todos-backend
+
 # ── Run ────────────────────────────────────────────────────────────────────────
 
-# Build and run the packaged app (API + embedded frontend on :3001)
-run: build-fe
+# Build and run the packaged app
+run: build
     cargo run -p todos-backend
 
-# Run without rebuilding frontend
+# Run without rebuilding
 run-fast:
     cargo run -p todos-backend
 
 # ── Dev ────────────────────────────────────────────────────────────────────────
 
-# Start backend (API + embedded frontend on :3001, auto-launches viewer)
+# Start backend (API + embedded frontend, auto-launches viewer)
 dev:
     cargo run -p todos-backend
 

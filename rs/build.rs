@@ -1,43 +1,37 @@
+use std::fs;
 use std::process::Command;
 
 fn main() {
-    // Build the Avalonia desktop viewer
-    let csharp_dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../csharp");
-
-    if !csharp_dir.join("DamascusUI.csproj").exists() {
-        println!("cargo:warning=csharp/DamascusUI.csproj not found, skipping viewer embed");
-        return;
+    // Bundle frontend (ts/dist → embedded by static_files.rs)
+    let ts_dist = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../ts/dist");
+    if ts_dist.exists() {
+        println!("cargo:warning=bundling frontend from ts/dist");
+        println!("cargo:rerun-if-changed=../ts/dist");
     }
 
-    // Build in release mode for embedding
-    let status = Command::new("dotnet")
-        .args(["publish", "-c", "Release", "-o", "publish"])
-        .current_dir(&csharp_dir)
-        .status()
-        .expect("failed to run dotnet publish for viewer; install .NET SDK");
-
-    if !status.success() {
-        panic!("dotnet publish failed for the viewer");
-    }
-
-    // Determine the binary name
-    let viewer_bin = if cfg!(target_os = "windows") {
-        csharp_dir.join("publish/DamascusUI.exe")
-    } else {
-        csharp_dir.join("publish/DamascusUI")
-    };
-
-    if !viewer_bin.exists() {
-        panic!("viewer binary not found after build: {}", viewer_bin.display());
-    }
-
-    // Copy to the embed directory
+    // Bundle viewer (copy entire csharp/publish → viewer-binary/)
+    let csharp_publish = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../csharp/publish");
     let embed_dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("viewer-binary");
-    std::fs::create_dir_all(&embed_dir).unwrap();
 
-    let dest = embed_dir.join(viewer_bin.file_name().unwrap());
-    std::fs::copy(&viewer_bin, &dest).unwrap();
+    if csharp_publish.exists() {
+        fs::create_dir_all(&embed_dir).unwrap();
 
-    println!("cargo:warning=viewer binary embedded: {}", dest.display());
-    println!("cargo:rerun-if-changed=../csharp");
+        #[cfg(unix)]
+        {
+            Command::new("cp")
+                .args(["-r", &format!("{}/.", csharp_publish.display()), &format!("{}", embed_dir.display())])
+                .status()
+                .unwrap();
+        }
+        #[cfg(windows)]
+        {
+            Command::new("xcopy")
+                .args([&format!("{}\\*", csharp_publish.display()), &format!("{}", embed_dir.display()), "/E", "/Y"])
+                .status()
+                .unwrap();
+        }
+
+        println!("cargo:warning=viewer bundled from csharp/publish");
+        println!("cargo:rerun-if-changed=../csharp/publish");
+    }
 }
