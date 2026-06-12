@@ -32,9 +32,6 @@ build-todos:
 build-todos-fe:
     cd examples/todos/frontend && pnpm install && pnpm build
 
-# Build everything
-build-all: build build-fe build-viewer build-todos build-todos-fe
-
 # Build Avalonia desktop viewer
 build-viewer:
     cd csharp && dotnet publish -c Release -o publish
