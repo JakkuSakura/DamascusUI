@@ -1,0 +1,87 @@
+/// Window lifecycle: create, resize, close, and property management.
+///
+/// Direction: frontend → backend (requests), backend → frontend (events).
+interface window {
+    use types.{size-i32, surface-id};
+
+    /// ---- Frontend → Backend (requests) ----
+
+    /// Request to open a new top-level window.
+    record open-request {
+        title: string,
+        width: u32,
+        height: u32,
+        /// Minimum size, or null for no constraint.
+        min-size: option<size-i32>,
+        /// Maximum size, or null for no constraint.
+        max-size: option<size-i32>,
+        /// Start resizable?
+        resizable: bool,
+        /// Start maximized?
+        maximized: bool,
+        /// Parent window, if any.
+        parent-id: option<surface-id>,
+    }
+
+    /// Response after successfully opening a window.
+    record open-response {
+        surface-id: surface-id,
+    }
+
+    /// Request to close a window.
+    record close-request {
+        surface-id: surface-id,
+    }
+
+    /// Request to change window properties.
+    record set-properties {
+        surface-id: surface-id,
+        title: option<string>,
+        size: option<size-i32>,
+        resizable: option<bool>,
+        minimized: option<bool>,
+        maximized: option<bool>,
+        fullscreen: option<bool>,
+    }
+
+    /// ---- Backend → Frontend (events) ----
+
+    /// The frontend window was resized by the user or OS.
+    record resized {
+        surface-id: surface-id,
+        width: u32,
+        height: u32,
+    }
+
+    /// The frontend window was closed by the user (e.g. clicking X).
+    record closed {
+        surface-id: surface-id,
+    }
+
+    /// The frontend window gained or lost focus.
+    record focus-changed {
+        surface-id: surface-id,
+        focused: bool,
+    }
+
+    /// The frontend entered or exited fullscreen.
+    record fullscreen-changed {
+        surface-id: surface-id,
+        fullscreen: bool,
+    }
+
+    /// High-DPI scale factor changed.
+    record scale-changed {
+        surface-id: surface-id,
+        scale: f32,
+    }
+
+    /// All window events the backend can receive from the frontend.
+    variant event {
+        resized(resized),
+        closed(closed),
+        focus-changed(focus-changed),
+        fullscreen-changed(fullscreen-changed),
+        scale-changed(scale-changed),
+    }
+}

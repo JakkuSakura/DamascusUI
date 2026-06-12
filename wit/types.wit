@@ -1,0 +1,46 @@
+/// Core geometric and color types shared across all protocols.
+interface types {
+    /// A 2D integer point (device pixels).
+    record point-i32 {
+        x: s32,
+        y: s32,
+    }
+
+    /// A 2D floating-point point (logical pixels).
+    record point-f32 {
+        x: f32,
+        y: f32,
+    }
+
+    /// A 2D integer size (device pixels).
+    record size-i32 {
+        width: s32,
+        height: s32,
+    }
+
+    /// A 2D floating-point size (logical pixels).
+    record size-f32 {
+        width: f32,
+        height: f32,
+    }
+
+    /// An integer rectangle.
+    record rect-i32 {
+        origin: point-i32,
+        size: size-i32,
+    }
+
+    /// RGBA color.
+    record color {
+        r: u8,
+        g: u8,
+        b: u8,
+        a: u8,
+    }
+
+    /// Window/surface identifier.
+    type surface-id = u32;
+
+    /// Opaque cursor icon identifier.
+    type cursor = u8;
+}

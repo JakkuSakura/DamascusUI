@@ -1,0 +1,40 @@
+/// Todos API — example of a CRUD API definition for codegen.
+///
+/// Running `scripts/codegen` reads this file and produces:
+///   rs/src/gen/todos.rs    — handler trait + types
+///   ts/src/gen/todos.ts    — typed fetch client
+///   csharp/gen/Todos.cs    — typed HttpClient
+
+interface todos {
+    /// A single todo item.
+    record todo {
+        id: u32,
+        title: string,
+        done: bool,
+    }
+
+    /// Input for creating a todo.
+    record create-todo {
+        title: string,
+    }
+
+    /// Input for updating a todo.
+    record update-todo {
+        title: option<string>,
+        done: option<bool>,
+    }
+
+    /// --- API endpoints ---
+
+    /// GET /api/todos → list all todos
+    get list-todos: list<todo>
+
+    /// POST /api/todos → create a todo
+    post create-todo(create-todo): todo
+
+    /// PUT /api/todos/{id} → update a todo
+    put update-todo(update-todo, id: u32): todo
+
+    /// DELETE /api/todos/{id} → delete a todo
+    delete delete-todo(id: u32): unit
+}

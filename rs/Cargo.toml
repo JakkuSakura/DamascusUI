@@ -1,0 +1,28 @@
+[package]
+name = "damascus"
+version = "0.1.0"
+authors = ["Jakku Saura <qjk2001@gmail.com>"]
+publish = false
+edition = "2024"
+
+[features]
+default = ["compio"]
+compio = ["dep:compio-runtime", "dep:compio-net", "dep:cyper-axum"]
+tokio = ["dep:tokio", "dep:tower-http"]
+
+[dependencies]
+axum = { version = "0.8", features = ["ws"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+tracing = "0.1"
+tracing-subscriber = "0.3"
+tower = "0.5"
+
+# compio runtime
+compio-runtime = { version = "0.12", optional = true }
+compio-net = { version = "0.12", optional = true }
+cyper-axum = { version = "0.9", optional = true }
+
+# tokio runtime
+tokio = { version = "1.52", features = ["macros", "rt-multi-thread", "sync", "net"], optional = true }
+tower-http = { version = "0.6", features = ["cors"], optional = true }

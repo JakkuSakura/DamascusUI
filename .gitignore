@@ -1,0 +1,38 @@
+# Build artifacts
+/target/
+**/target/
+/dist/
+
+# C# / .NET
+/csharp/bin/
+/csharp/obj/
+*.user
+*.suo
+*.vs/
+
+# Node / TypeScript
+/node_modules/
+/ts/node_modules/
+/ts/dist/
+*.tsbuildinfo
+pnpm-lock.yaml
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Misc
+.cache
+/tmp/
+artifacts/
+*.png

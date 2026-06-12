@@ -1,0 +1,19 @@
+/// DamascusUI desktop protocol world.
+///
+/// This world defines the contract between:
+/// - Rust backend (implements backend side)
+/// - SolidJS frontend (consumes render, produces input)
+/// - Avalonia viewer (produces native window/input, consumes render)
+///
+/// Communication is via WebSocket with JSON-encoded messages.
+/// Each message has a `type` field matching the variant name.
+
+world damascus-ui {
+    import types;
+    import window;
+    import render;
+    import input;
+    import menu;
+    import dialog;
+    import tray;
+}
