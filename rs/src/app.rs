@@ -1,8 +1,7 @@
-use std::io;
-
 use axum::Router;
 
 use crate::config::Config;
+use crate::error::Result;
 use crate::serve::serve;
 
 /// A Damascus application. Build one with [`App::builder()`].
@@ -20,7 +19,7 @@ impl App {
     }
 
     /// Start the server. Blocks until shutdown.
-    pub fn run(self) -> io::Result<()> {
+    pub fn run(self) -> Result<()> {
         serve(self.router, &self.config)
     }
 }

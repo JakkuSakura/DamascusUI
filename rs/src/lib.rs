@@ -1,5 +1,6 @@
 pub mod app;
 pub mod config;
+pub mod error;
 pub mod prelude;
 pub mod protocol;
 pub mod static_files;
