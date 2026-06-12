@@ -33,7 +33,11 @@ build-todos-fe:
     cd examples/todos/frontend && pnpm install && pnpm build
 
 # Build everything
-build-all: build build-fe build-todos build-todos-fe
+build-all: build build-fe build-viewer build-todos build-todos-fe
+
+# Build Avalonia desktop viewer
+build-viewer:
+    cd csharp && dotnet build
 
 # ── Check ──────────────────────────────────────────────────────────────────────
 
@@ -56,6 +60,10 @@ dev-fe:
 # Start example todos frontend
 dev-todos-fe:
     cd examples/todos/frontend && pnpm dev
+
+# Launch Avalonia desktop viewer (requires backend on :3000)
+dev-viewer:
+    cd csharp && dotnet run
 
 # Start example todos backend
 dev-todos:

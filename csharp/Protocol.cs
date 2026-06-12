@@ -58,13 +58,16 @@ public record SetProperties(
 [JsonDerivedType(typeof(FocusChanged), "window.focus-changed")]
 [JsonDerivedType(typeof(FullscreenChanged), "window.fullscreen-changed")]
 [JsonDerivedType(typeof(ScaleChanged), "window.scale-changed")]
-public abstract record WindowEvent : IProtocolMessage;
+public abstract record WindowEvent : IProtocolMessage
+{
+    public abstract string Type { get; }
+}
 
-public record WindowResized(uint SurfaceId, uint Width, uint Height) : WindowEvent;
-public record WindowClosed(uint SurfaceId) : WindowEvent;
-public record FocusChanged(uint SurfaceId, bool Focused) : WindowEvent;
-public record FullscreenChanged(uint SurfaceId, bool Fullscreen) : WindowEvent;
-public record ScaleChanged(uint SurfaceId, float Scale) : WindowEvent;
+public record WindowResized(uint SurfaceId, uint Width, uint Height) : WindowEvent { public override string Type => "window.resized"; }
+public record WindowClosed(uint SurfaceId) : WindowEvent { public override string Type => "window.closed"; }
+public record FocusChanged(uint SurfaceId, bool Focused) : WindowEvent { public override string Type => "window.focus-changed"; }
+public record FullscreenChanged(uint SurfaceId, bool Fullscreen) : WindowEvent { public override string Type => "window.fullscreen-changed"; }
+public record ScaleChanged(uint SurfaceId, float Scale) : WindowEvent { public override string Type => "window.scale-changed"; }
 
 // ── render ────────────────────────────────────────────────────────────────────
 

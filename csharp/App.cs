@@ -7,7 +7,7 @@ namespace DamascusUI;
 
 public sealed class App : Application
 {
-    public const string FrontendUrl = "http://127.0.0.1:5173";
+    public const string FrontendUrl = "http://127.0.0.1:3000";
 
     public override void Initialize()
     {
