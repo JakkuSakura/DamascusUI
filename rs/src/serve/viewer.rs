@@ -1,88 +1,44 @@
+use std::io;
 use std::path::PathBuf;
 use std::process::{Child, Command};
 use std::sync::Arc;
+use rust_embed::RustEmbed;
 use tokio::sync::Notify;
+
+#[derive(RustEmbed)]
+#[folder = "viewer-binary"]
+struct ViewerBinary;
 
 pub fn try_launch() -> Option<(Child, Arc<Notify>)> {
     let child = launch_viewer()?;
-
     tracing::info!("Launched desktop viewer");
     let shutdown = Arc::new(Notify::new());
-
     Some((child, shutdown))
 }
 
 fn launch_viewer() -> Option<Child> {
-    // Set DOTNET_ROOT from PATH if dotnet was installed via Homebrew
-    let dotnet_root = find_dotnet_root();
+    let bin_name = if cfg!(target_os = "windows") { "DamascusUI.exe" } else { "DamascusUI" };
 
-    // Try the native binary first
-    if let Some(path) = find_viewer_binary() {
-        let mut cmd = Command::new(&path);
-        if let Some(ref root) = dotnet_root {
-            cmd.env("DOTNET_ROOT", root);
-        }
-        if let Ok(child) = cmd.spawn() {
-            return Some(child);
-        }
+    let file = ViewerBinary::get(bin_name)?;
+    let temp_dir = std::env::temp_dir().join("damascus-viewer");
+    std::fs::create_dir_all(&temp_dir).ok()?;
+
+    let dest = temp_dir.join(bin_name);
+    std::fs::write(&dest, file.data.as_ref()).ok()?;
+
+    // Make executable on Unix
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        std::fs::set_permissions(&dest, std::fs::Permissions::from_mode(0o755)).ok()?;
     }
 
-    // Fallback: use dotnet run from the csharp project
-    let repo_root = find_repo_root()?;
-    let cs_dir = repo_root.join("csharp");
-    if cs_dir.join("DamascusUI.csproj").exists() {
-        let child = Command::new("dotnet")
-            .args(["run", "--project"])
-            .arg(cs_dir.join("DamascusUI.csproj"))
-            .spawn()
-            .ok()?;
-        return Some(child);
+    // Copy all publish artifacts so .NET can find dependencies
+    for entry in ViewerBinary::iter() {
+        if entry.as_ref() == bin_name { continue; }
+        let content = ViewerBinary::get(entry.as_ref())?;
+        std::fs::write(temp_dir.join(entry.as_ref()), content.data.as_ref()).ok();
     }
 
-    None
-}
-
-fn find_dotnet_root() -> Option<String> {
-    if let Ok(paths) = std::env::var("PATH") {
-        for dir in std::env::split_paths(&paths) {
-            let dotnet = dir.join("dotnet");
-            if dotnet.exists() {
-                // Homebrew: /opt/homebrew/bin/dotnet → root is /opt/homebrew
-                if let Some(parent) = dir.parent() {
-                    return Some(parent.to_string_lossy().to_string());
-                }
-            }
-        }
-    }
-    None
-}
-
-fn find_repo_root() -> Option<PathBuf> {
-    let exe = std::env::current_exe().ok()?;
-    let mut dir = exe.parent()?.to_path_buf();
-
-    for _ in 0..10 {
-        if dir.join("csharp/DamascusUI.csproj").exists() {
-            return Some(dir);
-        }
-        dir = dir.parent()?.to_path_buf();
-    }
-    None
-}
-
-fn find_viewer_binary() -> Option<PathBuf> {
-    let exe = std::env::current_exe().ok()?;
-    let dir = exe.parent()?;
-
-    let base = if cfg!(target_os = "windows") { "DamascusUI.exe" } else { "DamascusUI" };
-
-    let candidates = [
-        dir.join("../../../csharp/bin/Debug/net10.0").join(base),
-        dir.join("../../../csharp/bin/Release/net10.0").join(base),
-        dir.join("../../../../csharp/bin/Debug/net10.0").join(base),
-        dir.join("../../../../csharp/bin/Release/net10.0").join(base),
-        dir.join(base),
-    ];
-
-    candidates.into_iter().find(|p| p.exists())
+    Command::new(&dest).spawn().ok()
 }
