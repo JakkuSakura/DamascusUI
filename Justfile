@@ -34,7 +34,7 @@ build-todos-fe:
 
 # Build Avalonia desktop viewer
 build-viewer:
-    cd viewer && dotnet publish -c Release -o publish --self-contained -r osx-arm64
+    cd viewer && dotnet publish -c Release -o publish --self-contained -r osx-arm64 && codesign --force --deep --entitlements Entitlements.plist -s - publish/DamascusUI
 
 # Build everything (frontend → viewer → Rust)
 build-all: build-fe build-viewer
