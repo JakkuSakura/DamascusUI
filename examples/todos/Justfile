@@ -11,7 +11,7 @@ build-fe:
 
 # Build everything (ui → viewer → backend)
 build: build-fe
-    cd ../../../ cd ../.. &&cd ../.. && just build-viewer
+    cd ../.. && just build-viewer
     cargo build -p todos
 
 # ── Run ────────────────────────────────────────────────────────────────────────
