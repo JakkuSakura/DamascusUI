@@ -17,7 +17,7 @@ pub fn try_launch() -> Option<(Child, Arc<Notify>)> {
 fn launch_viewer() -> Option<Child> {
     let bin_name = if cfg!(target_os = "windows") { "DamascusUI.exe" } else { "DamascusUI" };
 
-    let file = ViewerBinary::get(bin_name)?;
+    ViewerBinary::get(bin_name)?;
     let temp_dir = std::env::temp_dir().join("damascus-viewer");
     std::fs::create_dir_all(&temp_dir).ok()?;
 
@@ -29,7 +29,6 @@ fn launch_viewer() -> Option<Child> {
 
     let dest = temp_dir.join(bin_name);
 
-    // Make executable on Unix
     #[cfg(unix)]
     {
         use std::os::unix::fs::PermissionsExt;
@@ -37,8 +36,8 @@ fn launch_viewer() -> Option<Child> {
     }
 
     let mut cmd = Command::new(&dest);
+    cmd.current_dir(&temp_dir);
 
-    // Homebrew installs .NET to /opt/homebrew, not /usr/local/share
     if let Some(root) = find_dotnet_root() {
         cmd.env("DOTNET_ROOT", &root);
     }
