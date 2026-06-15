@@ -18,18 +18,19 @@ pub fn serve(router: Router, config: &Config) -> Result<()> {
         .enable_all()
         .build()?;
 
-    let shutdown = viewer::try_launch().map(|(mut child, notify)| {
-        let notify_clone = notify.clone();
-        thread::spawn(move || {
-            let _ = child.wait();
-            notify_clone.notify_one();
-        });
-        notify
-    });
-
     rt.block_on(async {
         let (listener, addr) = bind_with_fallback(config).await?;
         tracing::info!("DamascusUI listening on http://{addr}");
+
+        // Launch viewer with the actual bound address
+        let shutdown = viewer::try_launch(&addr).map(|(mut child, notify)| {
+            let notify_clone = notify.clone();
+            thread::spawn(move || {
+                let _ = child.wait();
+                notify_clone.notify_one();
+            });
+            notify
+        });
 
         let app = router;
 

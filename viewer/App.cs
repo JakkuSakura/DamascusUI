@@ -7,7 +7,7 @@ namespace DamascusUI;
 
 public sealed class App : Application
 {
-    public const string FrontendUrl = "http://127.0.0.1:3000";
+    public static string FrontendUrl { get; private set; } = "http://127.0.0.1:3000";
 
     public override void Initialize()
     {
@@ -17,6 +17,9 @@ public sealed class App : Application
 
     public override void OnFrameworkInitializationCompleted()
     {
+        var args = Environment.GetCommandLineArgs();
+        if (args.Length > 1) FrontendUrl = args[1];
+
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
             desktop.MainWindow = new MainWindow();

@@ -7,14 +7,15 @@ use tokio::sync::Notify;
 #[folder = "viewer-binary"]
 struct ViewerBinary;
 
-pub fn try_launch() -> Option<(Child, Arc<Notify>)> {
-    let child = launch_viewer()?;
+pub fn try_launch(addr: &str) -> Option<(Child, Arc<Notify>)> {
+    let url = format!("http://{addr}");
+    let child = launch_viewer(&url)?;
     tracing::info!("Launched desktop viewer");
     let shutdown = Arc::new(Notify::new());
     Some((child, shutdown))
 }
 
-fn launch_viewer() -> Option<Child> {
+fn launch_viewer(url: &str) -> Option<Child> {
     let temp_dir = std::env::temp_dir().join("damascus-viewer");
     tracing::info!("extracting viewer to {}", temp_dir.display());
     std::fs::create_dir_all(&temp_dir).ok()?;
@@ -37,8 +38,8 @@ fn launch_viewer() -> Option<Child> {
         if app_bin.exists() {
             use std::os::unix::fs::PermissionsExt;
             std::fs::set_permissions(&app_bin, std::fs::Permissions::from_mode(0o755)).ok()?;
-            tracing::info!("launching viewer from app bundle");
-            return Command::new(&app_bin).current_dir(&temp_dir).spawn().ok();
+            tracing::info!("launching viewer from app bundle -> {url}");
+            return Command::new(&app_bin).arg(url).current_dir(&temp_dir).spawn().ok();
         }
     }
 
@@ -52,14 +53,14 @@ fn launch_viewer() -> Option<Child> {
     }
 
     let mut cmd = Command::new(&dest);
-    cmd.current_dir(&temp_dir);
+    cmd.arg(url).current_dir(&temp_dir);
 
     if let Some(root) = find_dotnet_root() {
         tracing::debug!("setting DOTNET_ROOT={}", root);
         cmd.env("DOTNET_ROOT", &root);
     }
 
-    tracing::info!("launching viewer binary");
+    tracing::info!("launching viewer binary -> {url}");
     cmd.spawn().ok()
 }
 
