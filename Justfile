@@ -34,7 +34,11 @@ build-todos-fe:
 
 # Build Avalonia desktop viewer
 build-viewer:
-    cd viewer && dotnet publish -c Release -o publish --self-contained -r osx-arm64 && codesign --force --deep --entitlements Entitlements.plist -s - publish/DamascusUI
+    cd viewer && dotnet publish -c Release -o publish --self-contained -r osx-arm64
+    mkdir -p viewer/publish/DamascusUI.app/Contents/MacOS
+    cp -a viewer/publish/* viewer/publish/DamascusUI.app/Contents/MacOS/ 2>/dev/null || true
+    cp viewer/Info.plist viewer/publish/DamascusUI.app/Contents/
+    codesign --force --deep --entitlements viewer/Entitlements.plist -s - viewer/publish/DamascusUI.app
 
 # Build everything (frontend → viewer → Rust)
 build-all: build-fe build-viewer

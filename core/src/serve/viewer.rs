@@ -15,18 +15,29 @@ pub fn try_launch() -> Option<(Child, Arc<Notify>)> {
 }
 
 fn launch_viewer() -> Option<Child> {
-    let bin_name = if cfg!(target_os = "windows") { "DamascusUI.exe" } else { "DamascusUI" };
-
-    ViewerBinary::get(bin_name)?;
     let temp_dir = std::env::temp_dir().join("damascus-viewer");
     std::fs::create_dir_all(&temp_dir).ok()?;
 
-    // Extract all embedded files so .NET finds its dependencies
+    // Extract all embedded files
     for entry in ViewerBinary::iter() {
         let content = ViewerBinary::get(entry.as_ref())?;
-        std::fs::write(temp_dir.join(entry.as_ref()), content.data.as_ref()).ok();
+        let dest = temp_dir.join(entry.as_ref());
+        if let Some(parent) = dest.parent() {
+            std::fs::create_dir_all(parent).ok();
+        }
+        std::fs::write(&dest, content.data.as_ref()).ok();
     }
 
+    #[cfg(target_os = "macos")]
+    {
+        // Launch .app bundle on macOS
+        let app = temp_dir.join("DamascusUI.app");
+        if app.exists() {
+            return Command::new("open").arg(&app).spawn().ok();
+        }
+    }
+
+    let bin_name = if cfg!(target_os = "windows") { "DamascusUI.exe" } else { "DamascusUI" };
     let dest = temp_dir.join(bin_name);
 
     #[cfg(unix)]
