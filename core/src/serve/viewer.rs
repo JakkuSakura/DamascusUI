@@ -30,10 +30,13 @@ fn launch_viewer() -> Option<Child> {
 
     #[cfg(target_os = "macos")]
     {
-        // Launch .app bundle on macOS
-        let app = temp_dir.join("DamascusUI.app");
-        if app.exists() {
-            return Command::new("open").arg(&app).spawn().ok();
+        // Launch binary directly from inside the .app bundle
+        // (avoids Gatekeeper while preserving proper NSApplication context)
+        let app_bin = temp_dir.join("DamascusUI.app/Contents/MacOS/DamascusUI");
+        if app_bin.exists() {
+            use std::os::unix::fs::PermissionsExt;
+            std::fs::set_permissions(&app_bin, std::fs::Permissions::from_mode(0o755)).ok()?;
+            return Command::new(&app_bin).current_dir(&temp_dir).spawn().ok();
         }
     }
 
