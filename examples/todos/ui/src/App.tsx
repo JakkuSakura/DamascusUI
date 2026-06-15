@@ -6,7 +6,7 @@ interface Todo {
   done: boolean;
 }
 
-const API = "http://127.0.0.1:3001/api/todos";
+const API = "/api/todos";
 
 async function fetchTodos(): Promise<Todo[]> {
   const res = await fetch(API);
