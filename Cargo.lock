@@ -375,8 +375,6 @@ dependencies = [
  "compio-net",
  "compio-runtime",
  "cyper-axum",
- "mime_guess",
- "rust-embed",
  "serde",
  "serde_json",
  "thiserror",

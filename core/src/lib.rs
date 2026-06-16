@@ -4,7 +4,6 @@ pub mod error;
 pub mod prelude;
 pub mod protocol;
 pub mod serve;
-pub mod static_files;
 
 pub use app::App;
 pub use config::Config;

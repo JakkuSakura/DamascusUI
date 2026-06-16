@@ -27,5 +27,3 @@ cyper-axum = { version = "0.9", optional = true }
 # tokio runtime
 tokio = { version = "1.52", features = ["macros", "rt-multi-thread", "sync", "net"], optional = true }
 tower-http = { version = "0.6", features = ["cors"], optional = true }
-rust-embed = "8"
-mime_guess = "2"

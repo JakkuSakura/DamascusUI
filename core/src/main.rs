@@ -1,4 +1,4 @@
-//! Damascus CLI — codegen and server launcher.
+//! Damascus CLI — WIT codegen.
 
 mod codegen;
 
@@ -9,37 +9,18 @@ use std::path::Path;
 fn main() {
     let args: Vec<String> = env::args().collect();
     if args.len() < 2 {
-        eprintln!("Usage: damascus <codegen|serve> [args...]");
+        eprintln!("Usage: damascus codegen <file.wit>");
         return;
     }
-
-    match args[1].as_str() {
-        "codegen" => {
-            if args.len() < 3 {
-                eprintln!("Usage: damascus codegen <file.wit>");
-                return;
-            }
-            run_codegen(&args[2]);
+    if args[1] == "codegen" {
+        if args.len() < 3 {
+            eprintln!("Usage: damascus codegen <file.wit>");
+            return;
         }
-        "serve" => serve(),
-        _ => eprintln!("unknown command: {}", args[1]),
+        run_codegen(&args[2]);
+    } else {
+        eprintln!("unknown command: {}", args[1]);
     }
-}
-
-#[cfg(feature = "tokio")]
-fn serve() {
-    tracing_subscriber::fmt::init();
-    let app = axum::Router::new()
-        .route("/health", axum::routing::get(|| async { "ok" }))
-        .fallback(damascus::static_files::serve_static);
-
-    let config = damascus::Config::new().port(3000);
-    damascus::serve::serve(app, &config).unwrap();
-}
-
-#[cfg(not(feature = "tokio"))]
-fn serve() {
-    eprintln!("serve requires the 'tokio' feature. Rebuild with: cargo build -F tokio");
 }
 
 fn run_codegen(path: &str) {
