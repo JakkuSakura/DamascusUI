@@ -3,21 +3,6 @@ set shell := ["zsh", "-cu"]
 default:
     @just --list
 
-# ── Build ──────────────────────────────────────────────────────────────────────
-
-build-fe:
-    cd ui && pnpm build
-
-build:
-    cargo build -p todos
-
-# ── Run ────────────────────────────────────────────────────────────────────────
-
-# Package and run: build core + build shell with config → launch
-run: build-fe build
-    cd ../.. && just build-shell examples/todos/damascus.json
-    shell/publish/DamascusUI --spawn target/debug/todos
-
 # ── Dev ────────────────────────────────────────────────────────────────────────
 
 dev-fe:
@@ -26,8 +11,29 @@ dev-fe:
 dev:
     cargo run -p todos
 
+# ── Build (release) ────────────────────────────────────────────────────────────
+
+build:
+    cd ui && pnpm build
+    cargo build -p todos --release
+
+# ── Run (release) ──────────────────────────────────────────────────────────────
+
+run:
+    cargo run -p todos --release
+
+# ── Package ────────────────────────────────────────────────────────────────────
+
+package: build
+    cd ../.. && just package target/release/todos examples/todos/damascus.json
+    @echo "Run with: shell/publish/DamascusUI --spawn target/release/todos"
+
+# ── Check ──────────────────────────────────────────────────────────────────────
+
 check:
     cargo check -p todos
+
+# ── Clean ──────────────────────────────────────────────────────────────────────
 
 clean:
     cargo clean
