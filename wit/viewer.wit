@@ -1,0 +1,92 @@
+/// Desktop viewer protocol — backend commands to the native viewer.
+///
+/// Direction: backend → viewer. Transport: WebSocket at /ws.
+/// Every message is JSON with a "type" discriminator.
+
+interface viewer {
+    use types.{point-i32, size-i32, surface-id};
+
+    // ── Window ──────────────────────────────────────────
+
+    /// Open a new window.
+    record open-window {
+        title: string,
+        width: u32,
+        height: u32,
+        url: string,
+        resizable: bool,
+        parent-id: option<surface-id>,
+    }
+
+    /// Close a window.
+    record close-window {
+        surface-id: surface-id,
+    }
+
+    /// Set window properties.
+    record set-window-props {
+        surface-id: surface-id,
+        title: option<string>,
+        size: option<size-i32>,
+        position: option<point-i32>,
+        minimized: option<bool>,
+        maximized: option<bool>,
+        fullscreen: option<bool>,
+    }
+
+    // ── Menu ────────────────────────────────────────────
+
+    /// A menu item.
+    variant menu-item {
+        action(string, string),
+        separator,
+        submenu(string, list<menu-item>),
+    }
+
+    /// Replace the menu bar.
+    record set-menu-bar {
+        items: list<menu-item>,
+    }
+
+    /// Show a context menu at a position.
+    record show-context-menu {
+        surface-id: surface-id,
+        position: point-i32,
+        items: list<menu-item>,
+    }
+
+    // ── Dock ────────────────────────────────────────────
+
+    /// Set the dock/taskbar icon (base64 PNG).
+    record set-dock-icon {
+        icon: string,
+    }
+
+    /// Set the dock/taskbar badge text.
+    record set-dock-badge {
+        text: string,
+    }
+
+    /// Set the dock/taskbar menu.
+    record set-dock-menu {
+        items: list<menu-item>,
+    }
+
+    // ── Events (viewer → backend) ───────────────────────
+
+    /// A window was closed by the user.
+    record window-closed {
+        surface-id: surface-id,
+    }
+
+    /// A menu item was activated.
+    record menu-activated {
+        surface-id: surface-id,
+        path: string,
+    }
+
+    /// A dock menu item was activated.
+    record dock-activated {
+        path: string,
+    }
+}

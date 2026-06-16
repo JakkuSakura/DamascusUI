@@ -471,3 +471,97 @@ pub struct ShowNotification {
 pub struct NotificationClicked {
     pub id: u32,
 }
+
+// ── viewer commands (backend → desktop viewer over WebSocket) ──────────────────
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct OpenWindowCmd {
+    pub title: String,
+    pub width: u32,
+    pub height: u32,
+    pub url: String,
+    pub resizable: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub parent_id: Option<SurfaceId>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CloseWindowCmd {
+    pub surface_id: SurfaceId,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SetWindowPropsCmd {
+    pub surface_id: SurfaceId,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub title: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub minimized: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub maximized: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub fullscreen: Option<bool>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(tag = "kind")]
+pub enum ViewerMenuItem {
+    #[serde(rename = "action")]
+    Action { id: String, label: String },
+    #[serde(rename = "separator")]
+    Separator,
+    #[serde(rename = "submenu")]
+    Submenu { label: String, items: Vec<ViewerMenuItem> },
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SetMenuBarCmd {
+    pub items: Vec<ViewerMenuItem>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SetDockIconCmd {
+    pub icon: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SetDockBadgeCmd {
+    pub text: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SetDockMenuCmd {
+    pub items: Vec<ViewerMenuItem>,
+}
+
+/// Commands sent from the backend to the desktop viewer.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(tag = "type")]
+pub enum ViewerCommand {
+    #[serde(rename = "viewer.open-window")]
+    OpenWindow(OpenWindowCmd),
+    #[serde(rename = "viewer.close-window")]
+    CloseWindow(CloseWindowCmd),
+    #[serde(rename = "viewer.set-window-props")]
+    SetWindowProps(SetWindowPropsCmd),
+    #[serde(rename = "viewer.set-menu-bar")]
+    SetMenuBar(SetMenuBarCmd),
+    #[serde(rename = "viewer.set-dock-icon")]
+    SetDockIcon(SetDockIconCmd),
+    #[serde(rename = "viewer.set-dock-badge")]
+    SetDockBadge(SetDockBadgeCmd),
+    #[serde(rename = "viewer.set-dock-menu")]
+    SetDockMenu(SetDockMenuCmd),
+}
+
+/// Events sent from the desktop viewer to the backend.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(tag = "type")]
+pub enum ViewerEvent {
+    #[serde(rename = "viewer.window-closed")]
+    WindowClosed { surface_id: SurfaceId },
+    #[serde(rename = "viewer.menu-activated")]
+    MenuActivated { surface_id: SurfaceId, path: String },
+    #[serde(rename = "viewer.dock-activated")]
+    DockActivated { path: String },
+}
