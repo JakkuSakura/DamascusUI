@@ -43,6 +43,13 @@ public sealed class App : Application
                         UseShellExecute = false,
                         RedirectStandardOutput = true,
                     });
+                    // Read the bound address from core's stdout
+                    if (_coreProcess != null)
+                    {
+                        var line = _coreProcess.StandardOutput.ReadLine();
+                        if (line?.StartsWith("DAMASCUS_ADDR=") == true)
+                            FrontendUrl = line["DAMASCUS_ADDR=".Length..];
+                    }
                     break;
             }
         }

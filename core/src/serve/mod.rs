@@ -11,6 +11,7 @@ pub fn serve(router: Router, config: &Config) -> Result<()> {
 
     rt.block_on(async {
         let (listener, addr) = bind_with_fallback(config).await?;
+        println!("DAMASCUS_ADDR=http://{addr}");
         tracing::info!("DamascusUI listening on http://{addr}");
         axum::serve(listener, router).await?;
         Ok(())
