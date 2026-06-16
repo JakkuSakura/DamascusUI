@@ -1,4 +1,5 @@
-import { createSignal, createResource, For, Show } from "solid-js";
+import { createSignal, createResource, For, Show, onMount, createEffect } from "solid-js";
+import { setWindowTitle, setMenuBar, openWindow, setDockBadge } from "../../../../ui/src/bridge";
 
 interface Todo {
   id: number;
@@ -15,18 +16,37 @@ async function fetchTodos(): Promise<Todo[]> {
 
 export default function App() {
   const [todos, { refetch }] = createResource(fetchTodos);
-  const [title, setTitle] = createSignal("");
+  const [t, setT] = createSignal("");
+
+  // Bridge: set up menu bar and window title
+  onMount(() => {
+    setWindowTitle("Todos");
+    setMenuBar([
+      { kind: "action", label: "New Window", id: "new" },
+      { kind: "separator" },
+      { kind: "action", label: "About Todos", id: "about" },
+    ]);
+  });
+
+  // Bridge: update dock badge with pending count
+  createEffect(() => {
+    const list = todos();
+    if (list) {
+      const pending = list.filter((t: Todo) => !t.done).length;
+      setDockBadge(pending > 0 ? String(pending) : "");
+    }
+  });
 
   async function addTodo(e: SubmitEvent) {
     e.preventDefault();
-    const t = title().trim();
-    if (!t) return;
+    const text = t().trim();
+    if (!text) return;
     await fetch(API, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title: t }),
+      body: JSON.stringify({ title: text }),
     });
-    setTitle("");
+    setT("");
     refetch();
   }
 
@@ -51,18 +71,15 @@ export default function App() {
       <form onSubmit={addTodo} class="flex gap-2 mb-6">
         <input
           type="text"
-          value={title()}
-          onInput={(e) => setTitle(e.currentTarget.value)}
+          value={t()}
+          onInput={(e) => setT(e.currentTarget.value)}
           placeholder="What needs to be done?"
           class="flex-1 px-4 py-2 rounded-lg bg-gray-800 border border-gray-700
                  text-gray-100 placeholder-gray-500 focus:outline-none
                  focus:border-blue-500 transition-colors"
         />
-        <button
-          type="submit"
-          class="px-6 py-2 rounded-lg bg-blue-600 hover:bg-blue-500
-                 font-medium transition-colors cursor-pointer"
-        >
+        <button type="submit"
+          class="px-6 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 font-medium transition-colors cursor-pointer">
           Add
         </button>
       </form>
@@ -71,40 +88,21 @@ export default function App() {
         <ul class="space-y-2">
           <For each={todos()}>
             {(todo) => (
-              <li
-                class="flex items-center gap-3 px-4 py-3 rounded-lg bg-gray-800/50
-                       border border-gray-800 hover:border-gray-700 transition-colors"
-              >
-                <button
-                  onClick={() => toggleTodo(todo)}
+              <li class="flex items-center gap-3 px-4 py-3 rounded-lg bg-gray-800/50 border border-gray-800 hover:border-gray-700 transition-colors">
+                <button onClick={() => toggleTodo(todo)}
                   class={`w-5 h-5 rounded border-2 flex-shrink-0 transition-colors cursor-pointer
-                    ${todo.done
-                      ? "bg-blue-500 border-blue-500"
-                      : "border-gray-600 hover:border-gray-400"
-                    }`}
-                >
+                    ${todo.done ? "bg-blue-500 border-blue-500" : "border-gray-600 hover:border-gray-400"}`}>
                   <Show when={todo.done}>
                     <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3">
                       <path d="M5 13l4 4L19 7" />
                     </svg>
                   </Show>
                 </button>
-
-                <span
-                  class={`flex-1 transition-colors ${
-                    todo.done ? "line-through text-gray-500" : "text-gray-100"
-                  }`}
-                >
+                <span class={`flex-1 transition-colors ${todo.done ? "line-through text-gray-500" : "text-gray-100"}`}>
                   {todo.title}
                 </span>
-
-                <button
-                  onClick={() => deleteTodo(todo.id)}
-                  class="text-gray-600 hover:text-red-400 transition-colors cursor-pointer
-                         px-2 py-1 text-sm"
-                >
-                  ✕
-                </button>
+                <button onClick={() => deleteTodo(todo.id)}
+                  class="text-gray-600 hover:text-red-400 transition-colors cursor-pointer px-2 py-1 text-sm">✕</button>
               </li>
             )}
           </For>
@@ -114,6 +112,13 @@ export default function App() {
       <Show when={todos() && todos()!.length === 0}>
         <p class="text-gray-500 text-center mt-8">No todos yet. Add one above!</p>
       </Show>
+
+      <div class="mt-8 text-center">
+        <button onClick={() => openWindow("Todos", window.location.href)}
+          class="px-6 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 text-gray-200 font-medium transition-colors cursor-pointer">
+          Open in New Window
+        </button>
+      </div>
     </div>
   );
 }

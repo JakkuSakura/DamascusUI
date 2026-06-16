@@ -80,6 +80,17 @@ public sealed class ViewerServer : IDisposable
                     await Respond(ctx, 200, "ok");
                     break;
 
+                case "set-dock-badge":
+                    Dispatcher.UIThread.Post(() =>
+                    {
+                        if (Application.Current?.ApplicationLifetime is
+                            IClassicDesktopStyleApplicationLifetime desktop
+                            && desktop.MainWindow is not null)
+                            desktop.MainWindow.Tag = body;
+                    });
+                    await Respond(ctx, 200, "ok");
+                    break;
+
                 default:
                     await Respond(ctx, 404, "not found");
                     break;
