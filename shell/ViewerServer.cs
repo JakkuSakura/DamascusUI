@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
@@ -18,14 +19,20 @@ public sealed class ViewerServer : IDisposable
     private readonly int _port;
     private readonly Action<string, string> _onOpenWindow;
     private readonly Action<List<NativeMenuItem>> _onSetMenu;
+    private readonly Action<string> _onSetDockBadge;
 
     public int Port => _port;
 
-    public ViewerServer(int port, Action<string, string> onOpenWindow, Action<List<NativeMenuItem>> onSetMenu)
+    public ViewerServer(
+        int port,
+        Action<string, string> onOpenWindow,
+        Action<List<NativeMenuItem>> onSetMenu,
+        Action<string> onSetDockBadge)
     {
         _port = port;
         _onOpenWindow = onOpenWindow;
         _onSetMenu = onSetMenu;
+        _onSetDockBadge = onSetDockBadge;
         _listener.Prefixes.Add($"http://127.0.0.1:{port}/");
     }
 
@@ -69,25 +76,19 @@ public sealed class ViewerServer : IDisposable
                 case "open-window":
                     var req = JsonSerializer.Deserialize<OpenWindowRequest>(body);
                     if (req != null)
-                        _onOpenWindow(req.Title, req.Url);
+                        Dispatcher.UIThread.Post(() => _onOpenWindow(req.Title, req.Url ?? string.Empty));
                     await Respond(ctx, 200, "ok");
                     break;
 
                 case "set-menu":
                     var items = JsonSerializer.Deserialize<List<NativeMenuItemDef>>(body);
                     if (items != null)
-                        _onSetMenu(items.Select(ToNativeMenuItem).ToList());
+                        Dispatcher.UIThread.Post(() => _onSetMenu(items.Select(ToNativeMenuItem).ToList()));
                     await Respond(ctx, 200, "ok");
                     break;
 
                 case "set-dock-badge":
-                    Dispatcher.UIThread.Post(() =>
-                    {
-                        if (Application.Current?.ApplicationLifetime is
-                            IClassicDesktopStyleApplicationLifetime desktop
-                            && desktop.MainWindow is not null)
-                            desktop.MainWindow.Tag = body;
-                    });
+                    Dispatcher.UIThread.Post(() => _onSetDockBadge(body));
                     await Respond(ctx, 200, "ok");
                     break;
 
@@ -112,10 +113,12 @@ public sealed class ViewerServer : IDisposable
 
     private static NativeMenuItem ToNativeMenuItem(NativeMenuItemDef def)
     {
+        var app = Application.Current as App;
+
         switch (def.Kind)
         {
             case "separator":
-                return new NativeMenuItemSeparator();
+                return app?.CreateSeparatorMenuItem() ?? new NativeMenuItemSeparator();
             case "submenu":
                 var sub = new NativeMenuItem(def.Label ?? "");
                 sub.Menu = new NativeMenu();
@@ -123,13 +126,43 @@ public sealed class ViewerServer : IDisposable
                     sub.Menu.Items.Add(ToNativeMenuItem(child));
                 return sub;
             default:
-                return new NativeMenuItem(def.Label ?? "");
+                return CreateActionItem(def, app);
         }
+    }
+
+    private static NativeMenuItem CreateActionItem(NativeMenuItemDef def, App? app)
+    {
+        var label = def.Label ?? "";
+        var id = def.Id ?? "";
+
+        if (app is null)
+        {
+            return new NativeMenuItem(label);
+        }
+
+        return id switch
+        {
+            "new" => app.CreateActionMenuItem(label, () =>
+            {
+                app.SendOpenWindow("Todos", App.FrontendUrl);
+            }),
+            "about" => app.CreateAboutMenuItem(),
+            _ => app.CreateActionMenuItem(label, () => { }),
+        };
     }
 
     public void Dispose() => _listener.Stop();
 }
 
 // JSON DTOs
-record OpenWindowRequest(string Title, string Url);
-record NativeMenuItemDef(string Kind, string? Label, List<NativeMenuItemDef>? Items);
+record OpenWindowRequest(
+    [property: JsonPropertyName("title")] string Title,
+    [property: JsonPropertyName("url")] string Url
+);
+
+record NativeMenuItemDef(
+    [property: JsonPropertyName("kind")] string Kind,
+    [property: JsonPropertyName("label")] string? Label,
+    [property: JsonPropertyName("id")] string? Id,
+    [property: JsonPropertyName("items")] List<NativeMenuItemDef>? Items
+);

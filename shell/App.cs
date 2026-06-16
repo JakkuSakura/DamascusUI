@@ -3,6 +3,7 @@ using System.Text.Json;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
+using Avalonia.Threading;
 using Avalonia.Styling;
 using Avalonia.Themes.Fluent;
 
@@ -14,6 +15,7 @@ public sealed class App : Application
     public static string WindowTitle { get; private set; } = "DamascusUI";
     private Process? _coreProcess;
     private ViewerServer? _server;
+    private string _lastDockBadge = string.Empty;
 
     public override void Initialize()
     {
@@ -59,7 +61,7 @@ public sealed class App : Application
             desktop.MainWindow = new MainWindow();
             desktop.Startup += (_, _) =>
             {
-                _server = new ViewerServer(MainWindow.ViewerPort, OpenNewWindow, SetMenuBar);
+                _server = new ViewerServer(MainWindow.ViewerPort, OpenNewWindow, SetMenuBar, SetDockBadge);
                 _server.Start();
             };
             desktop.Exit += (_, _) =>
@@ -99,14 +101,23 @@ public sealed class App : Application
 
     private void OpenNewWindow(string title, string url)
     {
-        var win = new Window
+        Dispatcher.UIThread.Post(() =>
         {
-            Title = title,
-            Width = 1024,
-            Height = 768,
-            Content = new NativeWebView { Source = new Uri(url) },
-        };
-        win.Show();
+            var win = new Window
+            {
+                Title = title,
+                Width = 1024,
+                Height = 768,
+                Content = new NativeWebView { Source = new Uri(url) },
+            };
+            ApplyDockBadge(win);
+            win.Show();
+        });
+    }
+
+    public void SendOpenWindow(string title, string url)
+    {
+        OpenNewWindow(title, NormalizeViewerUrl(url));
     }
 
     private void SetMenuBar(List<NativeMenuItem> items)
@@ -116,7 +127,78 @@ public sealed class App : Application
         {
             var menu = new NativeMenu();
             foreach (var item in items) menu.Items.Add(item);
-            NativeMenu.SetMenu(desktop.MainWindow, menu);
+            NativeMenu.SetMenu(this, menu);
         }
+    }
+
+    private void SetDockBadge(string text)
+    {
+        _lastDockBadge = text;
+        if (ApplicationLifetime is not IClassicDesktopStyleApplicationLifetime desktop)
+        {
+            return;
+        }
+
+        if (desktop.MainWindow is not null)
+        {
+            ApplyDockBadge(desktop.MainWindow);
+        }
+    }
+
+    private void ApplyDockBadge(Window window)
+    {
+        window.Tag = _lastDockBadge;
+    }
+
+    public string NormalizeViewerUrl(string? url)
+    {
+        if (!string.IsNullOrWhiteSpace(url))
+        {
+            return url;
+        }
+
+        return FrontendUrl;
+    }
+
+    public NativeMenuItem CreateActionMenuItem(string label, Action onClick)
+    {
+        var item = new NativeMenuItem(label);
+        item.Click += (_, _) => onClick();
+        return item;
+    }
+
+    public NativeMenuItemSeparator CreateSeparatorMenuItem()
+    {
+        return new NativeMenuItemSeparator();
+    }
+
+    public NativeMenuItem CreateAboutMenuItem()
+    {
+        return CreateActionMenuItem("About Todos", () =>
+        {
+            var owner = (ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow;
+            var dialog = new Window
+            {
+                Title = "About Todos",
+                Width = 360,
+                Height = 180,
+                CanResize = false,
+                Content = new TextBlock
+                {
+                    Text = "Todos\nDamascusUI example app",
+                    TextAlignment = Avalonia.Media.TextAlignment.Center,
+                    VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center,
+                    HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center,
+                },
+            };
+
+            if (owner is null)
+            {
+                dialog.Show();
+                return;
+            }
+
+            _ = dialog.ShowDialog(owner);
+        });
     }
 }
