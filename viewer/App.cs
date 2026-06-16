@@ -25,7 +25,7 @@ public sealed class App : Application
 
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
-            desktop.MainWindow = new MainWindow(OpenNewWindow);
+            desktop.MainWindow = new MainWindow(OpenNewWindow, SetMenuBar);
             desktop.Startup += async (_, _) =>
             {
                 if (desktop.MainWindow is MainWindow mw)
@@ -38,19 +38,24 @@ public sealed class App : Application
 
     private void OpenNewWindow(string title, string url)
     {
-        if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
+        var win = new Window
         {
-            var win = new Window
-            {
-                Title = title,
-                Width = 1024,
-                Height = 768,
-                Content = new NativeWebView
-                {
-                    Source = new Uri(url),
-                },
-            };
-            win.Show();
+            Title = title,
+            Width = 1024,
+            Height = 768,
+            Content = new NativeWebView { Source = new Uri(url) },
+        };
+        win.Show();
+    }
+
+    private void SetMenuBar(List<NativeMenuItem> items)
+    {
+        if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop
+            && desktop.MainWindow is not null)
+        {
+            var menu = new NativeMenu();
+            foreach (var item in items) menu.Items.Add(item);
+            NativeMenu.SetMenu(desktop.MainWindow, menu);
         }
     }
 }

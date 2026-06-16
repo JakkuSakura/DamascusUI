@@ -1,31 +1,29 @@
 using System.Net.WebSockets;
 using System.Text;
 using System.Text.Json;
+using Avalonia.Controls;
 
 namespace DamascusUI;
 
-/// <summary>
-/// Connects to the backend WebSocket and handles viewer commands.
-/// </summary>
 public sealed class ViewerClient : IDisposable
 {
     private readonly ClientWebSocket _ws = new();
     private readonly string _url;
     private readonly Action<string, string> _onOpenWindow;
+    private readonly Action<List<NativeMenuItem>> _onSetMenu;
     private CancellationTokenSource? _cts;
 
-    public ViewerClient(string baseUrl, Action<string, string> onOpenWindow)
+    public ViewerClient(string baseUrl, Action<string, string> onOpenWindow, Action<List<NativeMenuItem>> onSetMenu)
     {
         _url = baseUrl.Replace("http://", "ws://").Replace("https://", "wss://") + "/ws";
         _onOpenWindow = onOpenWindow;
+        _onSetMenu = onSetMenu;
     }
 
     public async Task ConnectAsync()
     {
         _cts = new CancellationTokenSource();
         await _ws.ConnectAsync(new Uri(_url), _cts.Token);
-        Console.WriteLine($"[ViewerClient] connected to {_url}");
-
         _ = ReceiveLoop(_cts.Token);
     }
 
@@ -44,12 +42,42 @@ public sealed class ViewerClient : IDisposable
             switch (type)
             {
                 case "viewer.open-window":
-                    var title = doc.RootElement.GetProperty("title").GetString() ?? "";
-                    var url = doc.RootElement.GetProperty("url").GetString() ?? "";
-                    _onOpenWindow(title, url);
+                    _onOpenWindow(
+                        doc.RootElement.GetProperty("title").GetString() ?? "",
+                        doc.RootElement.GetProperty("url").GetString() ?? "");
+                    break;
+                case "viewer.set-menu-bar":
+                    _onSetMenu(ParseMenu(doc.RootElement.GetProperty("items")));
                     break;
             }
         }
+    }
+
+    private static List<NativeMenuItem> ParseMenu(JsonElement items)
+    {
+        var list = new List<NativeMenuItem>();
+        foreach (var item in items.EnumerateArray())
+        {
+            var kind = item.GetProperty("kind").GetString();
+            var label = item.TryGetProperty("label", out var l) ? l.GetString() : "";
+            switch (kind)
+            {
+                case "action":
+                    list.Add(new NativeMenuItem(label!));
+                    break;
+                case "separator":
+                    list.Add(new NativeMenuItemSeparator());
+                    break;
+                case "submenu":
+                    var sub = new NativeMenuItem(label!);
+                    sub.Menu = new NativeMenu();
+                    foreach (var child in ParseMenu(item.GetProperty("items")))
+                        sub.Menu.Items.Add(child);
+                    list.Add(sub);
+                    break;
+            }
+        }
+        return list;
     }
 
     public void Dispose()
