@@ -69,7 +69,7 @@ public sealed class App : Application
         base.OnFrameworkInitializationCompleted();
     }
 
-    private static void LoadConfig()
+    private void LoadConfig()
     {
         try
         {
