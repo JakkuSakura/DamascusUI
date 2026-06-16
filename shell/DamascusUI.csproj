@@ -18,9 +18,11 @@
   <ItemGroup>
     <None Update="damascus.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <PublishFolderType>Resource</PublishFolderType>
     </None>
     <None Update="favicon.ico" Condition="Exists('favicon.ico')">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <PublishFolderType>Resource</PublishFolderType>
     </None>
   </ItemGroup>
 </Project>

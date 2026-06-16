@@ -45,11 +45,7 @@ run config="shell/damascus.json" url="http://127.0.0.1:3000" spawn="":
     if [ -f shell/favicon.ico ]; then cp shell/favicon.ico shell/publish/favicon.ico; fi
     if [ -f shell/damascus.json ]; then cp shell/damascus.json shell/publish/DamascusUI.app/Contents/Resources/damascus.json; fi
     if [ -f shell/favicon.ico ]; then cp shell/favicon.ico shell/publish/DamascusUI.app/Contents/Resources/favicon.ico; fi
-    if [ -n "{{spawn}}" ]; then
-        shell/publish/DamascusUI.app/Contents/MacOS/DamascusUI --url {{url}} --spawn {{spawn}}
-    else
-        shell/publish/DamascusUI.app/Contents/MacOS/DamascusUI --url {{url}}
-    fi
+    if [ -n "{{spawn}}" ]; then shell/publish/DamascusUI.app/Contents/MacOS/DamascusUI --url {{url}} --spawn {{spawn}}; else shell/publish/DamascusUI.app/Contents/MacOS/DamascusUI --url {{url}}; fi
 
 run-core:
     cargo run -p damascus --release
