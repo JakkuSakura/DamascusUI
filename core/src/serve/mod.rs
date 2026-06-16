@@ -1,16 +1,7 @@
 use axum::Router;
 
-#[cfg(feature = "tokio")]
-use tokio::net::TcpListener;
-
-#[cfg(feature = "tokio")]
-use std::thread;
-
 use crate::config::Config;
 use crate::error::Result;
-
-#[cfg(feature = "tokio")]
-mod viewer;
 
 #[cfg(feature = "tokio")]
 pub fn serve(router: Router, config: &Config) -> Result<()> {
@@ -21,37 +12,17 @@ pub fn serve(router: Router, config: &Config) -> Result<()> {
     rt.block_on(async {
         let (listener, addr) = bind_with_fallback(config).await?;
         tracing::info!("DamascusUI listening on http://{addr}");
-
-        // Launch viewer with the actual bound address
-        let shutdown = viewer::try_launch(&addr, &config.app_name).map(|(mut child, notify)| {
-            let notify_clone = notify.clone();
-            thread::spawn(move || {
-                let _ = child.wait();
-                notify_clone.notify_one();
-            });
-            notify
-        });
-
-        let app = router;
-
-        if let Some(shutdown) = shutdown {
-            axum::serve(listener, app)
-                .with_graceful_shutdown(async move { shutdown.notified().await })
-                .await?;
-        } else {
-            axum::serve(listener, app).await?;
-        }
-
+        axum::serve(listener, router).await?;
         Ok(())
     })
 }
 
 #[cfg(feature = "tokio")]
-async fn bind_with_fallback(config: &Config) -> Result<(TcpListener, String)> {
+async fn bind_with_fallback(config: &Config) -> Result<(tokio::net::TcpListener, String)> {
     let port = config.port;
     for offset in 0..100 {
         let candidate = format!("{}:{}", config.host, port + offset);
-        match TcpListener::bind(&candidate).await {
+        match tokio::net::TcpListener::bind(&candidate).await {
             Ok(listener) => return Ok((listener, candidate)),
             Err(e) if e.kind() == std::io::ErrorKind::AddrInUse => continue,
             Err(e) => return Err(e.into()),

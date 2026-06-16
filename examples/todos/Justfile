@@ -5,44 +5,30 @@ default:
 
 # ── Build ──────────────────────────────────────────────────────────────────────
 
-# Build ui
 build-fe:
     cd ui && pnpm build
 
-# Build everything (ui → shell → core)
-build: build-fe
-    cd ../.. && just build-shell
+build:
     cargo build -p todos
 
 # ── Run ────────────────────────────────────────────────────────────────────────
 
-# Build and run the packaged app
-run: build
-    cargo run -p todos
-
-# Run without rebuilding
-run-fast:
-    cargo run -p todos
+run: build-fe build
+    cd ../.. && just build-shell
+    cargo build -p todos  # ensure fresh binary
+    cd ../.. && shell/publish/DamascusUI --spawn target/debug/todos
 
 # ── Dev ────────────────────────────────────────────────────────────────────────
 
-# Start core (API + embedded ui, auto-launches viewer)
-dev:
-    cargo run -p todos
-
-# Start ui dev server only (Vite HMR at :5173)
 dev-fe:
     cd ui && pnpm dev
 
-# ── Check ──────────────────────────────────────────────────────────────────────
+dev:
+    cargo run -p todos
 
 check:
     cargo check -p todos
 
-# ── Clean ──────────────────────────────────────────────────────────────────────
-
 clean:
     cargo clean
-
-clean-fe:
     rm -rf ui/dist ui/node_modules

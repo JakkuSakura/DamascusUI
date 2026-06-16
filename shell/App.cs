@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
@@ -9,7 +10,7 @@ namespace DamascusUI;
 public sealed class App : Application
 {
     public static string FrontendUrl { get; private set; } = "http://127.0.0.1:3000";
-    public static string WindowTitle { get; private set; } = "DamascusUI";
+    private Process? _coreProcess;
     private ViewerServer? _server;
 
     public override void Initialize()
@@ -21,8 +22,23 @@ public sealed class App : Application
     public override void OnFrameworkInitializationCompleted()
     {
         var args = Environment.GetCommandLineArgs();
-        if (args.Length > 1) FrontendUrl = args[1];
-        if (args.Length > 2) WindowTitle = args[2];
+        for (int i = 1; i < args.Length; i++)
+        {
+            switch (args[i])
+            {
+                case "--url" when i + 1 < args.Length:
+                    FrontendUrl = args[++i];
+                    break;
+                case "--spawn" when i + 1 < args.Length:
+                    var bin = args[++i];
+                    _coreProcess = Process.Start(new ProcessStartInfo(bin)
+                    {
+                        UseShellExecute = false,
+                        RedirectStandardOutput = true,
+                    });
+                    break;
+            }
+        }
 
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
@@ -32,7 +48,15 @@ public sealed class App : Application
                 _server = new ViewerServer(MainWindow.ViewerPort, OpenNewWindow, SetMenuBar);
                 _server.Start();
             };
-            desktop.Exit += (_, _) => _server?.Dispose();
+            desktop.Exit += (_, _) =>
+            {
+                _server?.Dispose();
+                if (_coreProcess is { HasExited: false })
+                {
+                    _coreProcess.Kill();
+                    _coreProcess.Dispose();
+                }
+            };
         }
 
         base.OnFrameworkInitializationCompleted();

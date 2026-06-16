@@ -41,3 +41,4 @@ artifacui/
 *.png
 **/shell-binary/
 shell/publish/
+**/viewer-binary/
