@@ -49,6 +49,8 @@ export interface OpenRequest {
   resizable: boolean;
   maximized: boolean;
   parentId?: SurfaceId;
+  transparent: boolean;
+  decorations: boolean;
 }
 
 export interface OpenResponse {
@@ -70,6 +72,8 @@ export interface SetProperties {
   minimized?: boolean;
   maximized?: boolean;
   fullscreen?: boolean;
+  transparent?: boolean;
+  decorations?: boolean;
 }
 
 export type WindowEvent =

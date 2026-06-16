@@ -62,6 +62,8 @@ pub struct OpenRequest {
     pub maximized: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub parent_id: Option<SurfaceId>,
+    pub transparent: bool,
+    pub decorations: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -89,6 +91,10 @@ pub struct SetProperties {
     pub maximized: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub fullscreen: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub transparent: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub decorations: Option<bool>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

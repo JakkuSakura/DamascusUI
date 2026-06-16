@@ -4,6 +4,8 @@ using System.Collections.Concurrent;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
+using Avalonia.Media;
+using Avalonia.Platform;
 using Avalonia.Threading;
 using Avalonia.Styling;
 using Avalonia.Themes.Fluent;
@@ -14,6 +16,9 @@ public sealed class App : Application
 {
     public static string FrontendUrl { get; private set; } = "http://127.0.0.1:3000";
     public static string WindowTitle { get; private set; } = "DamascusUI";
+    public static bool ConfigTransparent { get; private set; } = false;
+    public static bool ConfigDecorations { get; private set; } = true;
+    private static string LaunchWorkingDirectory { get; } = Environment.CurrentDirectory;
     private Process? _coreProcess;
     private ViewerServer? _server;
     private string _lastDockBadge = string.Empty;
@@ -44,19 +49,7 @@ public sealed class App : Application
                     WindowTitle = args[++i];
                     break;
                 case "--spawn" when i + 1 < args.Length:
-                    var bin = args[++i];
-                    _coreProcess = Process.Start(new ProcessStartInfo(bin)
-                    {
-                        UseShellExecute = false,
-                        RedirectStandardOutput = true,
-                    });
-                    // Read the bound address from core's stdout
-                    if (_coreProcess != null)
-                    {
-                        var line = _coreProcess.StandardOutput.ReadLine();
-                        if (line?.StartsWith("DAMASCUS_ADDR=") == true)
-                            FrontendUrl = line["DAMASCUS_ADDR=".Length..];
-                    }
+                    StartCoreProcess(args[++i]);
                     break;
             }
         }
@@ -64,16 +57,19 @@ public sealed class App : Application
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
             var mainWindowId = NextWindowId();
-            desktop.MainWindow = CreateWindow(mainWindowId, WindowTitle, FrontendUrl);
+            desktop.MainWindow = CreateWindow(mainWindowId, WindowTitle, FrontendUrl, ConfigTransparent, ConfigDecorations);
             desktop.Startup += (_, _) =>
             {
                 _server = new ViewerServer(
                     MainWindow.ViewerPort,
                     OpenNewWindow,
+                    CloseWindow,
                     SetMenuBar,
                     SetDockIcon,
                     SetDockBadge,
                     SetWindowTitle,
+                    SetWindowProps,
+                    ShowSystemNotification,
                     FocusedWindowId);
                 _server.Start();
                 _ = RefreshDockIconFromFrontendAsync();
@@ -96,27 +92,51 @@ public sealed class App : Application
     {
         try
         {
-            var path = Path.Combine(AppContext.BaseDirectory, "damascus.json");
+            var path = ResolveBundledFile("damascus.json");
             if (!File.Exists(path)) return;
             var json = File.ReadAllText(path);
             using var doc = JsonDocument.Parse(json);
             var root = doc.RootElement;
             if (root.TryGetProperty("url", out var u)) FrontendUrl = u.GetString()!;
             if (root.TryGetProperty("title", out var t)) WindowTitle = t.GetString()!;
+            if (root.TryGetProperty("transparent", out var tr) && tr.ValueKind == JsonValueKind.True || tr.ValueKind == JsonValueKind.False)
+                ConfigTransparent = tr.GetBoolean();
+            if (root.TryGetProperty("decorations", out var dc) && dc.ValueKind == JsonValueKind.True || dc.ValueKind == JsonValueKind.False)
+                ConfigDecorations = dc.GetBoolean();
             if (root.TryGetProperty("spawn", out var s) && s.ValueKind == JsonValueKind.String)
-                _coreProcess = Process.Start(new ProcessStartInfo(s.GetString()!)
-                {
-                    UseShellExecute = false,
-                    RedirectStandardOutput = true,
-                });
+            {
+                StartCoreProcess(s.GetString()!);
+            }
         }
         catch { }
     }
 
-    private Window CreateWindow(long windowId, string title, string url)
+    private void StartCoreProcess(string path)
+    {
+        var resolvedPath = ResolveLaunchPath(path);
+        _coreProcess = Process.Start(new ProcessStartInfo(resolvedPath)
+        {
+            UseShellExecute = false,
+            RedirectStandardOutput = true,
+            WorkingDirectory = Path.GetDirectoryName(resolvedPath) ?? LaunchWorkingDirectory,
+        });
+
+        if (_coreProcess is null)
+        {
+            return;
+        }
+
+        var line = _coreProcess.StandardOutput.ReadLine();
+        if (line?.StartsWith("DAMASCUS_ADDR=") == true)
+        {
+            FrontendUrl = line["DAMASCUS_ADDR=".Length..];
+        }
+    }
+
+    private Window CreateWindow(long windowId, string title, string url, bool transparent = false, bool decorations = true)
     {
         var source = BuildWindowUri(windowId, NormalizeViewerUrl(url));
-        var window = new MainWindow(windowId, source)
+        var window = new MainWindow(windowId, source, transparent, decorations)
         {
             Title = title,
         };
@@ -127,18 +147,18 @@ public sealed class App : Application
         return window;
     }
 
-    private void OpenNewWindow(long sourceWindowId, string title, string url)
+    private void OpenNewWindow(long sourceWindowId, string title, string url, bool transparent = false, bool decorations = true)
     {
         Dispatcher.UIThread.Post(() =>
         {
-            var win = CreateWindow(NextWindowId(), title, url);
+            var win = CreateWindow(NextWindowId(), title, url, transparent, decorations);
             win.Show();
         });
     }
 
-    public void SendOpenWindow(long sourceWindowId, string title, string url)
+    public void SendOpenWindow(long sourceWindowId, string title, string url, bool transparent = false, bool decorations = true)
     {
-        OpenNewWindow(sourceWindowId, title, NormalizeViewerUrl(url));
+        OpenNewWindow(sourceWindowId, title, NormalizeViewerUrl(url), transparent, decorations);
     }
 
     private void SetMenuBar(long windowId, List<NativeMenuItemDef> items)
@@ -190,13 +210,92 @@ public sealed class App : Application
         MacDock.TrySetDockIconFromBase64(icon);
     }
 
+    private void ShowSystemNotification(long windowId, NotificationRequest request)
+    {
+        if (MacFocus.TryIsFocusLikelyActive() == true)
+        {
+            var warningPayload = JsonSerializer.SerializeToElement(new
+            {
+                title = request.Title,
+                body = request.Body,
+                reason = "focus-active",
+                message = "Focus/Do Not Disturb appears active; macOS may mute or delay the notification banner.",
+            });
+            _server?.PublishFromShell("notification.warning", warningPayload, "window", windowId);
+        }
+
+        MacNotification.TryShow(
+            request.Title,
+            request.Body,
+            () =>
+            {
+                var topic = string.IsNullOrWhiteSpace(request.Topic)
+                    ? "notification.clicked"
+                    : request.Topic!;
+                _server?.PublishFromShell(
+                    topic,
+                    request.Payload ?? JsonSerializer.SerializeToElement(new { title = request.Title, body = request.Body }),
+                    "window",
+                    windowId);
+            });
+    }
+
     private void TryApplyBundledDockIcon()
     {
-        var favicon = Path.Combine(AppContext.BaseDirectory, "favicon.ico");
+        var favicon = ResolveBundledFile("favicon.ico");
         if (File.Exists(favicon))
         {
             SetDockIcon(Convert.ToBase64String(File.ReadAllBytes(favicon)));
         }
+    }
+
+    private static string ResolveBundledFile(string fileName)
+    {
+        var candidates = new[]
+        {
+            Path.Combine(AppContext.BaseDirectory, fileName),
+            Path.Combine(AppContext.BaseDirectory, "..", "Resources", fileName),
+            Path.Combine(AppContext.BaseDirectory, "..", "..", "..", fileName),
+            Path.Combine(LaunchWorkingDirectory, "shell", fileName),
+            Path.Combine(LaunchWorkingDirectory, fileName),
+        };
+
+        foreach (var candidate in candidates)
+        {
+            var fullPath = Path.GetFullPath(candidate);
+            if (File.Exists(fullPath))
+            {
+                return fullPath;
+            }
+        }
+
+        return Path.GetFullPath(candidates[0]);
+    }
+
+    private static string ResolveLaunchPath(string path)
+    {
+        if (Path.IsPathRooted(path))
+        {
+            return path;
+        }
+
+        var candidates = new[]
+        {
+            Path.Combine(LaunchWorkingDirectory, path),
+            Path.Combine(AppContext.BaseDirectory, path),
+            Path.Combine(AppContext.BaseDirectory, "..", "..", "..", path),
+        };
+
+        foreach (var candidate in candidates)
+        {
+            var fullPath = Path.GetFullPath(candidate);
+            if (File.Exists(fullPath))
+            {
+                return fullPath;
+            }
+        }
+
+        return Path.GetFullPath(Path.Combine(LaunchWorkingDirectory, path));
     }
 
     private async Task RefreshDockIconFromFrontendAsync()
@@ -229,11 +328,50 @@ public sealed class App : Application
         window.Tag = _lastDockBadge;
     }
 
+    private void CloseWindow(long windowId)
+    {
+        Dispatcher.UIThread.Post(() =>
+        {
+            if (_windows.TryGetValue(windowId, out var window))
+            {
+                window.Close();
+            }
+        });
+    }
+
     private void SetWindowTitle(long windowId, string title)
     {
         if (_windows.TryGetValue(windowId, out var window))
         {
             window.Title = title;
+        }
+    }
+
+    private void SetWindowProps(long windowId, bool? transparent, bool? decorations)
+    {
+        if (!_windows.TryGetValue(windowId, out var window))
+        {
+            return;
+        }
+
+        if (transparent.HasValue)
+        {
+            window.TransparencyLevelHint = transparent.Value
+                ? [WindowTransparencyLevel.Transparent]
+                : [];
+            window.Background = transparent.Value ? Brushes.Transparent : null;
+        }
+
+        if (decorations.HasValue)
+        {
+            window.WindowDecorations = decorations.Value
+                ? Avalonia.Controls.WindowDecorations.Full
+                : Avalonia.Controls.WindowDecorations.None;
+            if (!decorations.Value)
+            {
+                window.ExtendClientAreaToDecorationsHint = true;
+                window.ExtendClientAreaTitleBarHeightHint = 0;
+            }
         }
     }
 

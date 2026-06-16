@@ -21,6 +21,10 @@ interface window {
         maximized: bool,
         /// Parent window, if any.
         parent-id: option<surface-id>,
+        /// Transparent background (shows desktop/content behind).
+        transparent: bool,
+        /// Show system title bar and borders.
+        decorations: bool,
     }
 
     /// Response after successfully opening a window.
@@ -42,6 +46,10 @@ interface window {
         minimized: option<bool>,
         maximized: option<bool>,
         fullscreen: option<bool>,
+        /// Change transparency (may not take effect on all platforms after creation).
+        transparent: option<bool>,
+        /// Change decorations (may not take effect on most platforms after creation).
+        decorations: option<bool>,
     }
 
     /// ---- Backend → Frontend (events) ----

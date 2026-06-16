@@ -1,7 +1,9 @@
 {
   "url": "http://127.0.0.1:3000",
-  "title": "DamascusUI",
+  "title": "Todos",
   "spawn": null,
-  "width": 1024,
-  "height": 768
+  "width": 420,
+  "height": 680,
+  "transparent": true,
+  "decorations": false
 }

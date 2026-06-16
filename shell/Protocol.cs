@@ -24,7 +24,9 @@ public record OpenRequest(
     SizeI32? MaxSize,
     bool Resizable,
     bool Maximized,
-    uint? ParentId
+    uint? ParentId,
+    bool Transparent,
+    bool Decorations
 ) : IProtocolMessage
 {
     public string Type => "window.open";
@@ -47,7 +49,9 @@ public record SetProperties(
     bool? Resizable,
     bool? Minimized,
     bool? Maximized,
-    bool? Fullscreen
+    bool? Fullscreen,
+    bool? Transparent,
+    bool? Decorations
 ) : IProtocolMessage
 {
     public string Type => "window.set-properties";

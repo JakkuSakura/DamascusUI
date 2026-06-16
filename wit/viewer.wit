@@ -16,6 +16,10 @@ interface viewer {
         url: string,
         resizable: bool,
         parent-id: option<surface-id>,
+        /// Transparent background.
+        transparent: bool,
+        /// Show system title bar and borders.
+        decorations: bool,
     }
 
     /// Close a window.
@@ -32,6 +36,8 @@ interface viewer {
         minimized: option<bool>,
         maximized: option<bool>,
         fullscreen: option<bool>,
+        transparent: option<bool>,
+        decorations: option<bool>,
     }
 
     // ── Menu ────────────────────────────────────────────

@@ -1,1 +1,88 @@
 @import "tailwindcss";
+
+@theme {
+  --color-glass-5: oklch(100% 0 0 / 5%);
+  --color-glass-8: oklch(100% 0 0 / 8%);
+  --color-glass-10: oklch(100% 0 0 / 10%);
+  --color-glass-15: oklch(100% 0 0 / 15%);
+  --color-glass-20: oklch(100% 0 0 / 20%);
+  --color-glass-border: oklch(100% 0 0 / 10%);
+}
+
+html, body, #root {
+  background: transparent !important;
+  -webkit-app-region: no-drag;
+}
+
+/* Custom title bar region for window dragging */
+.titlebar {
+  -webkit-app-region: drag;
+  user-select: none;
+}
+
+.titlebar button,
+.titlebar input,
+.titlebar a {
+  -webkit-app-region: no-drag;
+}
+
+/* Glass card */
+.glass {
+  background: oklch(100% 0 0 / 6%);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid oklch(100% 0 0 / 10%);
+  border-radius: 16px;
+}
+
+.glass-sm {
+  background: oklch(100% 0 0 / 4%);
+  backdrop-filter: blur(16px) saturate(150%);
+  -webkit-backdrop-filter: blur(16px) saturate(150%);
+  border: 1px solid oklch(100% 0 0 / 7%);
+  border-radius: 12px;
+}
+
+/* Smooth transitions */
+* {
+  transition-property: background-color, border-color, box-shadow, opacity;
+  transition-duration: 200ms;
+  transition-timing-function: ease-out;
+}
+
+/* Hide scrollbar but keep scroll */
+::-webkit-scrollbar {
+  width: 0;
+}
+
+/* Frosted input */
+.glass-input {
+  background: oklch(100% 0 0 / 5%);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid oklch(100% 0 0 / 8%);
+  border-radius: 12px;
+}
+
+.glass-input:focus {
+  background: oklch(100% 0 0 / 10%);
+  border-color: oklch(65% 0.18 255 / 50%);
+  outline: none;
+  box-shadow: 0 0 0 2px oklch(65% 0.18 255 / 15%);
+}
+
+/* Subtle hover highlight */
+.hover-glass:hover {
+  background: oklch(100% 0 0 / 10%);
+  border-color: oklch(100% 0 0 / 15%);
+}
+
+/* Pulse animation for notification badge */
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 0 0 oklch(65% 0.18 255 / 0%); }
+  50% { box-shadow: 0 0 16px 4px oklch(65% 0.18 255 / 25%); }
+}
+
+.pulse-glow {
+  animation: pulse-glow 2s infinite;
+}

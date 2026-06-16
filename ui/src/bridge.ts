@@ -127,8 +127,19 @@ export function setWindowTitle(title: string) {
   send("set-title", { title });
 }
 
+export function setWindowProps(opts: { transparent?: boolean; decorations?: boolean }) {
+  send("set-window-props", {
+    transparent: opts.transparent,
+    decorations: opts.decorations,
+  });
+}
+
 export function openWindow(title: string, url: string) {
   send("open-window", { title, url });
+}
+
+export function closeWindow() {
+  send("close-window", {});
 }
 
 export function setMenuBar(items: MenuItem[]) {
@@ -141,6 +152,19 @@ export function setDockBadge(text: string) {
 
 export function setDockIcon(base64Image: string) {
   send("set-dock-icon", { icon: base64Image });
+}
+
+export function showSystemNotification(
+  title: string,
+  body: string,
+  options?: { topic?: string; payload?: unknown },
+) {
+  send("show-notification", {
+    title,
+    body,
+    topic: options?.topic,
+    payload: options?.payload,
+  });
 }
 
 export function subscribe(topic: string, handler: EventHandler): () => void {

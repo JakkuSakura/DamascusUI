@@ -19,30 +19,39 @@ public sealed class ViewerServer : IDisposable
 
     private readonly HttpListener _listener = new();
     private readonly int _port;
-    private readonly Action<long, string, string> _onOpenWindow;
+    private readonly Action<long, string, string, bool, bool> _onOpenWindow;
+    private readonly Action<long> _onCloseWindow;
     private readonly Action<long, List<NativeMenuItemDef>> _onSetMenu;
     private readonly Action<string> _onSetDockIcon;
     private readonly Action<string> _onSetDockBadge;
     private readonly Action<long, string> _onSetWindowTitle;
+    private readonly Action<long, bool?, bool?> _onSetWindowProps;
+    private readonly Action<long, NotificationRequest> _onShowNotification;
     private readonly Func<long> _focusedWindowId;
     private readonly ConcurrentDictionary<long, ShellConnection> _connections = new();
     private readonly ConcurrentDictionary<string, ConcurrentDictionary<long, byte>> _topicSubscribers = new();
 
     public ViewerServer(
         int port,
-        Action<long, string, string> onOpenWindow,
+        Action<long, string, string, bool, bool> onOpenWindow,
+        Action<long> onCloseWindow,
         Action<long, List<NativeMenuItemDef>> onSetMenu,
         Action<string> onSetDockIcon,
         Action<string> onSetDockBadge,
         Action<long, string> onSetWindowTitle,
+        Action<long, bool?, bool?> onSetWindowProps,
+        Action<long, NotificationRequest> onShowNotification,
         Func<long> focusedWindowId)
     {
         _port = port;
         _onOpenWindow = onOpenWindow;
+        _onCloseWindow = onCloseWindow;
         _onSetMenu = onSetMenu;
         _onSetDockIcon = onSetDockIcon;
         _onSetDockBadge = onSetDockBadge;
         _onSetWindowTitle = onSetWindowTitle;
+        _onSetWindowProps = onSetWindowProps;
+        _onShowNotification = onShowNotification;
         _focusedWindowId = focusedWindowId;
         _listener.Prefixes.Add($"http://127.0.0.1:{port}/");
     }
@@ -160,6 +169,12 @@ public sealed class ViewerServer : IDisposable
             case "set-title":
                 await HandleSetTitle(connection, message);
                 break;
+            case "set-window-props":
+                await HandleSetWindowProps(connection, message);
+                break;
+            case "close-window":
+                await HandleCloseWindow(connection);
+                break;
             case "open-window":
                 await HandleOpenWindow(connection, message);
                 break;
@@ -171,6 +186,9 @@ public sealed class ViewerServer : IDisposable
                 break;
             case "set-dock-icon":
                 await HandleSetDockIcon(message);
+                break;
+            case "show-notification":
+                await HandleShowNotification(connection, message);
                 break;
             case "subscribe":
                 await HandleSubscribe(connection, message);
@@ -214,6 +232,26 @@ public sealed class ViewerServer : IDisposable
         await connection.SendAsync(new AckEnvelope("set-title"));
     }
 
+    private async Task HandleSetWindowProps(ShellConnection connection, JsonElement message)
+    {
+        var payload = message.Deserialize<SetWindowPropsRequest>(JsonOptions);
+        if (payload is null)
+        {
+            await connection.SendAsync(new ErrorEnvelope("invalid_set_window_props", "Invalid set-window-props payload"));
+            return;
+        }
+
+        if (payload.Transparent is bool t || payload.Decorations is bool d)
+        {
+            Dispatcher.UIThread.Post(() => _onSetWindowProps(connection.WindowId, payload.Transparent, payload.Decorations));
+        }
+    }
+
+    private async Task HandleCloseWindow(ShellConnection connection)
+    {
+        Dispatcher.UIThread.Post(() => _onCloseWindow(connection.WindowId));
+    }
+
     private async Task HandleOpenWindow(ShellConnection connection, JsonElement message)
     {
         var payload = message.Deserialize<OpenWindowRequest>(JsonOptions);
@@ -224,7 +262,7 @@ public sealed class ViewerServer : IDisposable
         }
 
         Dispatcher.UIThread.Post(() =>
-            _onOpenWindow(connection.WindowId, payload.Title, payload.Url ?? string.Empty));
+            _onOpenWindow(connection.WindowId, payload.Title, payload.Url ?? string.Empty, payload.Transparent, payload.Decorations));
 
         await connection.SendAsync(new AckEnvelope("open-window"));
     }
@@ -263,6 +301,19 @@ public sealed class ViewerServer : IDisposable
 
         Dispatcher.UIThread.Post(() => _onSetDockIcon(payload.Icon));
         await Task.CompletedTask;
+    }
+
+    private async Task HandleShowNotification(ShellConnection connection, JsonElement message)
+    {
+        var payload = message.Deserialize<NotificationRequest>(JsonOptions);
+        if (payload is null)
+        {
+            await connection.SendAsync(new ErrorEnvelope("invalid_notification", "Invalid notification payload"));
+            return;
+        }
+
+        Dispatcher.UIThread.Post(() => _onShowNotification(connection.WindowId, payload));
+        await connection.SendAsync(new AckEnvelope("show-notification"));
     }
 
     private async Task HandleSubscribe(ShellConnection connection, JsonElement message)
@@ -443,7 +494,15 @@ record PublishRequest(
 
 record OpenWindowRequest(
     [property: JsonPropertyName("title")] string Title,
-    [property: JsonPropertyName("url")] string Url
+    [property: JsonPropertyName("url")] string Url,
+    [property: JsonPropertyName("transparent")] bool Transparent,
+    [property: JsonPropertyName("decorations")] bool Decorations
+);
+
+record SetWindowPropsRequest(
+    [property: JsonPropertyName("surfaceId")] uint SurfaceId,
+    [property: JsonPropertyName("transparent")] bool? Transparent,
+    [property: JsonPropertyName("decorations")] bool? Decorations
 );
 
 record AckEnvelope([property: JsonPropertyName("action")] string Action)

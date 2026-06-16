@@ -22,7 +22,7 @@ build:
 run: build
     cp ui/public/favicon.ico ../../shell/favicon.ico
     cd ../.. && just build-shell examples/todos/damascus.json
-    cd ../.. && shell/publish/DamascusUI --spawn target/release/todos
+    cd ../.. && shell/publish/DamascusUI.app/Contents/MacOS/DamascusUI --spawn "target/release/todos"
 
 run-core:
     cargo run -p todos --release

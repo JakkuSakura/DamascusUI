@@ -1,5 +1,5 @@
 import { createSignal, createResource, For, Show, onMount, createEffect, onCleanup } from "solid-js";
-import { setWindowTitle, setMenuBar, openWindow, setDockBadge, publish, subscribe } from "../../../../ui/src/bridge";
+import { setWindowTitle, setMenuBar, openWindow, setDockBadge, publish, showSystemNotification, subscribe } from "../../../../ui/src/bridge";
 
 interface Todo {
   id: number;
@@ -17,8 +17,8 @@ async function fetchTodos(): Promise<Todo[]> {
 export default function App() {
   const [todos, { refetch }] = createResource(fetchTodos);
   const [t, setT] = createSignal("");
+  const [notificationWarning, setNotificationWarning] = createSignal("");
 
-  // Bridge: set up menu bar and window title
   onMount(() => {
     setWindowTitle("Todos");
     setMenuBar([
@@ -39,12 +39,24 @@ export default function App() {
         window.alert(message);
       }
     });
+    const unsubscribeNotification = subscribe("notification.clicked", (payload) => {
+      if (payload && typeof payload === "object" && "title" in payload) {
+        const title = String((payload as { title: unknown }).title);
+        window.alert(`Notification clicked: ${title}`);
+      }
+    });
+    const unsubscribeNotificationWarning = subscribe("notification.warning", (payload) => {
+      if (payload && typeof payload === "object" && "message" in payload) {
+        setNotificationWarning(String((payload as { message: unknown }).message));
+      }
+    });
     onCleanup(unsubscribe);
     onCleanup(unsubscribeMenuNew);
     onCleanup(unsubscribeMenuAbout);
+    onCleanup(unsubscribeNotification);
+    onCleanup(unsubscribeNotificationWarning);
   });
 
-  // Bridge: update dock badge with pending count
   createEffect(() => {
     const list = todos();
     if (list) {
@@ -80,64 +92,130 @@ export default function App() {
     refetch();
   }
 
+  const pending = () => {
+    const list = todos();
+    return list ? list.filter((t: Todo) => !t.done) : [];
+  };
+  const done = () => {
+    const list = todos();
+    return list ? list.filter((t: Todo) => t.done) : [];
+  };
+
   return (
-    <div class="max-w-xl mx-auto py-12 px-4">
-      <h1 class="text-3xl font-bold mb-8 text-center">Todos</h1>
+    <div class="h-screen flex flex-col p-3 gap-3 select-none">
+      {/* Title bar — draggable */}
+      <div class="titlebar glass-sm px-4 py-3 flex items-center shrink-0">
+        <h1 class="text-sm font-semibold tracking-wide text-white/80 flex-1">Todos</h1>
+        <span class="text-xs text-white/40 tabular-nums">
+          {pending().length} remaining
+        </span>
+      </div>
 
-      <form onSubmit={addTodo} class="flex gap-2 mb-6">
-        <input
-          type="text"
-          value={t()}
-          onInput={(e) => setT(e.currentTarget.value)}
-          placeholder="What needs to be done?"
-          class="flex-1 px-4 py-2 rounded-lg bg-gray-800 border border-gray-700
-                 text-gray-100 placeholder-gray-500 focus:outline-none
-                 focus:border-blue-500 transition-colors"
-        />
-        <button type="submit"
-          class="px-6 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 font-medium transition-colors cursor-pointer">
-          Add
-        </button>
-      </form>
+      {/* Add form */}
+      <div class="shrink-0">
+        <form onSubmit={addTodo} class="flex gap-2">
+          <input
+            type="text"
+            value={t()}
+            onInput={(e) => setT(e.currentTarget.value)}
+            placeholder="What needs to be done?"
+            class="flex-1 px-4 py-2.5 glass-input text-sm text-white/90
+                   placeholder:text-white/25"
+          />
+          <button type="submit"
+            class="px-5 py-2.5 glass text-sm font-medium text-white/80 hover:text-white hover-glass cursor-pointer">
+            Add
+          </button>
+        </form>
+      </div>
 
-      <Show when={!todos.loading} fallback={<p class="text-gray-500 text-center">Loading...</p>}>
-        <ul class="space-y-2">
-          <For each={todos()}>
-            {(todo) => (
-              <li class="flex items-center gap-3 px-4 py-3 rounded-lg bg-gray-800/50 border border-gray-800 hover:border-gray-700 transition-colors">
-                <button onClick={() => toggleTodo(todo)}
-                  class={`w-5 h-5 rounded border-2 flex-shrink-0 transition-colors cursor-pointer
-                    ${todo.done ? "bg-blue-500 border-blue-500" : "border-gray-600 hover:border-gray-400"}`}>
-                  <Show when={todo.done}>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3">
-                      <path d="M5 13l4 4L19 7" />
-                    </svg>
-                  </Show>
-                </button>
-                <span class={`flex-1 transition-colors ${todo.done ? "line-through text-gray-500" : "text-gray-100"}`}>
-                  {todo.title}
-                </span>
-                <button onClick={() => deleteTodo(todo.id)}
-                  class="text-gray-600 hover:text-red-400 transition-colors cursor-pointer px-2 py-1 text-sm">✕</button>
-              </li>
-            )}
-          </For>
-        </ul>
-      </Show>
+      {/* Todo list */}
+      <div class="flex-1 overflow-y-auto space-y-1.5 pr-0.5">
+        <Show when={!todos.loading} fallback={
+          <div class="glass-sm px-4 py-8 text-center text-sm text-white/30">Loading...</div>
+        }>
+          <Show when={todos() && (pending().length > 0 || done().length > 0)} fallback={
+            <div class="glass-sm px-4 py-12 text-center text-sm text-white/25">
+              No todos yet. Add one above!
+            </div>
+          }>
+            <For each={pending()}>
+              {(todo) => <TodoItem todo={todo} onToggle={toggleTodo} onDelete={deleteTodo} />}
+            </For>
+            <Show when={done().length > 0 && pending().length > 0}>
+              <div class="py-2 px-4">
+                <div class="border-t border-white/5" />
+              </div>
+            </Show>
+            <For each={done()}>
+              {(todo) => <TodoItem todo={todo} onToggle={toggleTodo} onDelete={deleteTodo} />}
+            </For>
+          </Show>
+        </Show>
+      </div>
 
-      <Show when={todos() && todos()!.length === 0}>
-        <p class="text-gray-500 text-center mt-8">No todos yet. Add one above!</p>
-      </Show>
-
-      <div class="mt-8 text-center">
+      {/* Actions */}
+      <div class="shrink-0 flex gap-2">
         <button onClick={() => {
           openWindow("Todos", window.location.href);
           publish("todos.window-opened", { openedAt: Date.now() }, { scope: "except-self" });
         }}
-          class="px-6 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 text-gray-200 font-medium transition-colors cursor-pointer">
-          Open in New Window
+          class="flex-1 py-2.5 glass-sm text-xs font-medium text-white/50 hover:text-white/70 hover-glass cursor-pointer
+                 text-center">
+          New Window
+        </button>
+        <button onClick={() => {
+          showSystemNotification("Todos", "Pending todos are waiting", {
+            topic: "notification.clicked",
+            payload: { title: "Todos", source: "todos-demo" },
+          });
+        }}
+          class="flex-1 py-2.5 glass-sm text-xs font-medium text-white/50 hover:text-white/70 hover-glass cursor-pointer
+                 text-center">
+          Notify
         </button>
       </div>
+
+      <Show when={notificationWarning()}>
+        <div class="glass-sm px-4 py-3 text-xs text-amber-200/80 shrink-0">
+          {notificationWarning()}
+        </div>
+      </Show>
+    </div>
+  );
+}
+
+function TodoItem(props: {
+  todo: Todo;
+  onToggle: (t: Todo) => void;
+  onDelete: (id: number) => void;
+}) {
+  return (
+    <div class={`glass-sm px-3 py-2.5 flex items-center gap-3 group hover-glass cursor-pointer
+      ${props.todo.done ? "opacity-50" : ""}`}
+      onClick={() => props.onToggle(props.todo)}>
+      <div class={`w-4 h-4 rounded-full border-2 flex-shrink-0 flex items-center justify-center
+        transition-all duration-200
+        ${props.todo.done
+          ? "border-blue-400/60 bg-blue-400/20"
+          : "border-white/15 group-hover:border-white/30"}`}>
+        <Show when={props.todo.done}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="oklch(80% 0.12 255)" stroke-width="3"
+            class="w-2.5 h-2.5">
+            <path d="M5 13l4 4L19 7" />
+          </svg>
+        </Show>
+      </div>
+      <span class={`flex-1 text-sm transition-all duration-200
+        ${props.todo.done ? "line-through text-white/25" : "text-white/80"}`}>
+        {props.todo.title}
+      </span>
+      <button onClick={(e) => { e.stopPropagation(); props.onDelete(props.todo.id); }}
+        class="opacity-0 group-hover:opacity-100 text-white/20 hover:text-red-300/80
+               transition-all duration-200 cursor-pointer text-xs w-5 h-5 flex items-center justify-center
+               rounded-full hover:bg-white/5">
+        ✕
+      </button>
     </div>
   );
 }
