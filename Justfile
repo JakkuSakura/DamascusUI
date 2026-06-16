@@ -6,7 +6,7 @@ default:
 
 # ── Setup ──────────────────────────────────────────────────────────────────────
 
-# Install all dependencies (Rust + frontend)
+# Install all dependencies (Rust + ui)
 setup:
     cd ts && pnpm install
 
@@ -20,17 +20,17 @@ build:
 build-tokio:
     cargo build -p damascus --no-default-features -F tokio
 
-# Build frontend
+# Build ui
 build-fe:
     cd ts && pnpm build
 
-# Build example todos backend
+# Build example todos core
 build-todos:
     cargo build -p todos
 
-# Build example todos frontend
+# Build example todos ui
 build-todos-fe:
-    cd examples/todos/frontend && pnpm install && pnpm build
+    cd examples/todos/ui && pnpm install && pnpm build
 
 # Build Avalonia desktop viewer
 build-viewer:
@@ -40,7 +40,7 @@ build-viewer:
     cp viewer/Info.plist viewer/publish/DamascusUI.app/Contents/
     codesign --force --deep --entitlements viewer/Entitlements.plist -s - viewer/publish/DamascusUI.app
 
-# Build everything (frontend → viewer → Rust)
+# Build everything (ui → viewer → Rust)
 build-all: build-fe build-viewer
     cargo build -p damascus --no-default-features -F tokio
 
@@ -52,29 +52,29 @@ check:
     cargo check -p damascus --no-default-features -F tokio
     cargo check -p todos
 
-# Type-check frontend
+# Type-check ui
 check-fe:
     cd ts && pnpm exec tsc --noEmit
 
 # ── Dev ────────────────────────────────────────────────────────────────────────
 
-# Start frontend dev server (Vite HMR)
+# Start ui dev server (Vite HMR)
 dev-fe:
     cd ts && pnpm dev
 
-# Start example todos frontend
+# Start example todos ui
 dev-todos-fe:
-    cd examples/todos/frontend && pnpm dev
+    cd examples/todos/ui && pnpm dev
 
-# Launch Avalonia desktop viewer (requires backend on :3000)
+# Launch Avalonia desktop viewer (requires core on :3000)
 dev-viewer:
     cd csharp && dotnet run
 
-# Start example todos backend
+# Start example todos core
 dev-todos:
     cargo run -p todos
 
-# Full-stack dev: Vite HMR + Rust backend with watch
+# Full-stack dev: Vite HMR + Rust core with watch
 dev *args=".":
     @echo "==> Starting full-stack dev mode"
     @echo "    Frontend: http://localhost:3000"
@@ -108,7 +108,7 @@ lint:
 clean:
     cargo clean
 
-# Remove frontend build output
+# Remove ui build output
 clean-fe:
     rm -rf ui/dist examples/todos/ui/dist
 

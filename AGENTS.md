@@ -20,7 +20,7 @@ cd rs && cargo check
 cd rs && cargo check --no-default-features -F tokio
 
 # Example app
-cd examples/todos && cargo check -p todos-backend
+cd examples/todos && cargo check -p todos
 
 # Codegen — generates Rust/TS/C# from WIT
 cargo run -- codegen examples/todos/wit/todos.wit
@@ -48,7 +48,7 @@ Browser ───┐
 Avalonia ──┘   (webview)
 ```
 
-- Rust backend is a standard data server (REST + WebSocket)
+- Rust core is a standard data server (REST + WebSocket)
 - SolidJS is the full UI layer
 - Avalonia is a thin desktop shell embedding the same SolidJS app via WebView
 - WIT protocol files live at `wit/` (framework) and `examples/*/wit/` (per-app)

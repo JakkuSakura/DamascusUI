@@ -9,7 +9,7 @@ default:
 build-fe:
     cd ui && pnpm build
 
-# Build everything (ui → viewer → backend)
+# Build everything (ui → viewer → core)
 build: build-fe
     cd ../.. && just build-viewer
     cargo build -p todos
@@ -26,7 +26,7 @@ run-fast:
 
 # ── Dev ────────────────────────────────────────────────────────────────────────
 
-# Start backend (API + embedded ui, auto-launches viewer)
+# Start core (API + embedded ui, auto-launches viewer)
 dev:
     cargo run -p todos
 

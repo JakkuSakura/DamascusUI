@@ -4,6 +4,10 @@ version = "0.1.0"
 edition = "2024"
 publish = false
 
+[[bin]]
+name = "todos"
+path = "core/main.rs"
+
 [dependencies]
 damascus = { path = "../../core", default-features = false, features = ["tokio"] }
 serde = { version = "1", features = ["derive"] }

@@ -1,6 +1,6 @@
 # DamascusUI
 
-Cross-platform UI framework. Rust backend + SolidJS full frontend + Avalonia desktop webview viewer.
+Cross-platform UI framework. Rust core + SolidJS full UI + Avalonia desktop webview viewer.
 
 ## Architecture
 
@@ -34,7 +34,7 @@ DamascusUI/
 
 ## Quick Start
 
-### Rust backend
+### Rust core
 
 ```bash
 # compio runtime (default)
@@ -44,7 +44,7 @@ cargo run -p damascus-core
 cargo run -p damascus-core --no-default-features -F tokio
 ```
 
-### SolidJS frontend (primary UI)
+### SolidJS UI (primary UI)
 
 ```bash
 cd ts
@@ -63,10 +63,10 @@ dotnet run      # loads the SolidJS app in a native window
 
 ```bash
 # Terminal 1 — Rust API backend
-cargo run -p todos-backend        # → http://127.0.0.1:3001
+cargo run -p todos        # → http://127.0.0.1:3001
 
-# Terminal 2 — SolidJS frontend
-cd examples/todos/frontend
+# Terminal 2 — SolidJS UI
+cd examples/todos/ui
 pnpm install
 pnpm dev                          # → http://127.0.0.1:5173
 ```
