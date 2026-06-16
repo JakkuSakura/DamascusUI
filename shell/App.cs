@@ -17,6 +17,7 @@ public sealed class App : Application
 
     public override void Initialize()
     {
+        Name = WindowTitle;
         RequestedThemeVariant = ThemeVariant.Dark;
         Styles.Add(new FluentTheme());
     }
