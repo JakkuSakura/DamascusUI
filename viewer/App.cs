@@ -1,4 +1,5 @@
 using Avalonia;
+using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Styling;
 using Avalonia.Themes.Fluent;
@@ -24,9 +25,32 @@ public sealed class App : Application
 
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
-            desktop.MainWindow = new MainWindow();
+            desktop.MainWindow = new MainWindow(OpenNewWindow);
+            desktop.Startup += async (_, _) =>
+            {
+                if (desktop.MainWindow is MainWindow mw)
+                    await mw.ConnectViewerAsync();
+            };
         }
 
         base.OnFrameworkInitializationCompleted();
+    }
+
+    private void OpenNewWindow(string title, string url)
+    {
+        if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
+        {
+            var win = new Window
+            {
+                Title = title,
+                Width = 1024,
+                Height = 768,
+                Content = new NativeWebView
+                {
+                    Source = new Uri(url),
+                },
+            };
+            win.Show();
+        }
     }
 }
