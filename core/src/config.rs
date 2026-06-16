@@ -3,6 +3,7 @@
 pub struct Config {
     pub host: String,
     pub port: u16,
+    pub app_name: String,
 }
 
 impl Default for Config {
@@ -10,6 +11,7 @@ impl Default for Config {
         Self {
             host: "127.0.0.1".into(),
             port: 3000,
+            app_name: "DamascusUI".into(),
         }
     }
 }
@@ -26,6 +28,11 @@ impl Config {
 
     pub fn port(mut self, port: u16) -> Self {
         self.port = port;
+        self
+    }
+
+    pub fn app_name(mut self, name: impl Into<String>) -> Self {
+        self.app_name = name.into();
         self
     }
 

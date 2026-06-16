@@ -40,7 +40,7 @@ fn main() {
     damascus::tracing_subscriber::fmt::init();
 
     let app = App::builder()
-        .config(Config::new().port(3001))
+        .config(Config::new().port(3001).app_name("Todos"))
         .route(
             "/api/todos",
             get(handlers::list).post(handlers::create),

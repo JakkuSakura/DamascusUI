@@ -23,7 +23,7 @@ pub fn serve(router: Router, config: &Config) -> Result<()> {
         tracing::info!("DamascusUI listening on http://{addr}");
 
         // Launch viewer with the actual bound address
-        let shutdown = viewer::try_launch(&addr).map(|(mut child, notify)| {
+        let shutdown = viewer::try_launch(&addr, &config.app_name).map(|(mut child, notify)| {
             let notify_clone = notify.clone();
             thread::spawn(move || {
                 let _ = child.wait();
