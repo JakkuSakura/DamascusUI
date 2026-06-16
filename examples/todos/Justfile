@@ -19,21 +19,20 @@ build:
 
 # ── Run (release) ──────────────────────────────────────────────────────────────
 
-run:
+run: build
+    cd ../.. && just build-shell examples/todos/damascus.json
+    cd ../.. && shell/publish/DamascusUI --spawn target/release/todos
+
+run-core:
     cargo run -p todos --release
 
 # ── Package ────────────────────────────────────────────────────────────────────
 
 package: build
     cd ../.. && just package target/release/todos examples/todos/damascus.json
-    @echo "Run with: shell/publish/DamascusUI --spawn target/release/todos"
-
-# ── Check ──────────────────────────────────────────────────────────────────────
 
 check:
     cargo check -p todos
-
-# ── Clean ──────────────────────────────────────────────────────────────────────
 
 clean:
     cargo clean
