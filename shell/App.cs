@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Text.Json;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
@@ -10,6 +11,7 @@ namespace DamascusUI;
 public sealed class App : Application
 {
     public static string FrontendUrl { get; private set; } = "http://127.0.0.1:3000";
+    public static string WindowTitle { get; private set; } = "DamascusUI";
     private Process? _coreProcess;
     private ViewerServer? _server;
 
@@ -21,6 +23,7 @@ public sealed class App : Application
 
     public override void OnFrameworkInitializationCompleted()
     {
+        LoadConfig();
         var args = Environment.GetCommandLineArgs();
         for (int i = 1; i < args.Length; i++)
         {
@@ -28,6 +31,9 @@ public sealed class App : Application
             {
                 case "--url" when i + 1 < args.Length:
                     FrontendUrl = args[++i];
+                    break;
+                case "--title" when i + 1 < args.Length:
+                    WindowTitle = args[++i];
                     break;
                 case "--spawn" when i + 1 < args.Length:
                     var bin = args[++i];
@@ -60,6 +66,27 @@ public sealed class App : Application
         }
 
         base.OnFrameworkInitializationCompleted();
+    }
+
+    private static void LoadConfig()
+    {
+        try
+        {
+            var path = Path.Combine(AppContext.BaseDirectory, "damascus.json");
+            if (!File.Exists(path)) return;
+            var json = File.ReadAllText(path);
+            using var doc = JsonDocument.Parse(json);
+            var root = doc.RootElement;
+            if (root.TryGetProperty("url", out var u)) FrontendUrl = u.GetString()!;
+            if (root.TryGetProperty("title", out var t)) WindowTitle = t.GetString()!;
+            if (root.TryGetProperty("spawn", out var s) && s.ValueKind == JsonValueKind.String)
+                _coreProcess = Process.Start(new ProcessStartInfo(s.GetString()!)
+                {
+                    UseShellExecute = false,
+                    RedirectStandardOutput = true,
+                });
+        }
+        catch { }
     }
 
     private void OpenNewWindow(string title, string url)

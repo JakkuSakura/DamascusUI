@@ -19,19 +19,19 @@ build-tokio:
 build-fe:
     cd ui && pnpm build
 
-build-shell:
+# Build shell with optional per-app config
+build-shell config="shell/damascus.json":
+    cp {{config}} shell/damascus.json
     cd shell && dotnet publish -c Release -o publish --self-contained -r osx-arm64
 
-build-all: build-fe build-shell
+build-all: build-fe
     cargo build -p damascus --no-default-features -F tokio
+    just build-shell
 
 # ── Dev ────────────────────────────────────────────────────────────────────────
 
 dev-fe:
     cd ui && pnpm dev
-
-dev-shell *args="--url http://127.0.0.1:3000":
-    cd shell && dotnet run -- {{args}}
 
 # ── Codegen ────────────────────────────────────────────────────────────────────
 

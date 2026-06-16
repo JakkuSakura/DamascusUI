@@ -13,10 +13,10 @@ build:
 
 # ── Run ────────────────────────────────────────────────────────────────────────
 
+# Package and run: build core + build shell with config → launch
 run: build-fe build
-    cd ../.. && just build-shell
-    cargo build -p todos  # ensure fresh binary
-    cd ../.. && shell/publish/DamascusUI --spawn target/debug/todos
+    cd ../.. && just build-shell examples/todos/damascus.json
+    shell/publish/DamascusUI --spawn target/debug/todos
 
 # ── Dev ────────────────────────────────────────────────────────────────────────
 
