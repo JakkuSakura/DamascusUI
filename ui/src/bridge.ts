@@ -1,11 +1,24 @@
 // Bridge from the SolidJS frontend to the Avalonia desktop viewer.
-// Uses location.href to damascus:// URLs — the webview intercepts
-// NavigationStarting for these custom schemes without navigating away.
+// The viewer runs a local REST server on port 45769.
 
-export function setWindowTitle(title: string) {
-  window.location.href = `damascus://set-title/${encodeURIComponent(title)}`;
+const VIEWER = "http://127.0.0.1:45769";
+
+async function post(path: string, body: string) {
+  try {
+    await fetch(`${VIEWER}/${path}`, { method: "POST", body });
+  } catch {
+    // viewer not available (running in browser)
+  }
 }
 
-export function setWindowIcon(iconBase64: string) {
-  window.location.href = `damascus://set-icon/${iconBase64}`;
+export function setWindowTitle(title: string) {
+  post("set-title", title);
+}
+
+export function openWindow(title: string, url: string) {
+  post("open-window", JSON.stringify({ title, url }));
+}
+
+export function setMenuBar(items: { kind: string; label?: string; items?: unknown[] }[]) {
+  post("set-menu", JSON.stringify(items));
 }

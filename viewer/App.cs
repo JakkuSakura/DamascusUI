@@ -10,6 +10,7 @@ public sealed class App : Application
 {
     public static string FrontendUrl { get; private set; } = "http://127.0.0.1:3000";
     public static string WindowTitle { get; private set; } = "DamascusUI";
+    private ViewerServer? _server;
 
     public override void Initialize()
     {
@@ -25,12 +26,13 @@ public sealed class App : Application
 
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
-            desktop.MainWindow = new MainWindow(OpenNewWindow, SetMenuBar);
-            desktop.Startup += async (_, _) =>
+            desktop.MainWindow = new MainWindow();
+            desktop.Startup += (_, _) =>
             {
-                if (desktop.MainWindow is MainWindow mw)
-                    await mw.ConnectViewerAsync();
+                _server = new ViewerServer(MainWindow.ViewerPort, OpenNewWindow, SetMenuBar);
+                _server.Start();
             };
+            desktop.Exit += (_, _) => _server?.Dispose();
         }
 
         base.OnFrameworkInitializationCompleted();

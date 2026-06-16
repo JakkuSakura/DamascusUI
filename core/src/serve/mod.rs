@@ -11,8 +11,6 @@ use crate::error::Result;
 
 #[cfg(feature = "tokio")]
 mod viewer;
-#[cfg(feature = "tokio")]
-pub mod ws;
 
 #[cfg(feature = "tokio")]
 pub fn serve(router: Router, config: &Config) -> Result<()> {
