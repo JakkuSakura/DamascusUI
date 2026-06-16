@@ -5,9 +5,11 @@ namespace DamascusUI;
 public sealed class MainWindow : Window
 {
     public const int ViewerPort = 45769;
+    public long WindowId { get; }
 
-    public MainWindow()
+    public MainWindow(long windowId, Uri source)
     {
+        WindowId = windowId;
         Title = App.WindowTitle;
         Width = 1024;
         Height = 768;
@@ -19,6 +21,6 @@ public sealed class MainWindow : Window
         };
 
         Content = webview;
-        webview.Source = new Uri(App.FrontendUrl);
+        webview.Source = source;
     }
 }

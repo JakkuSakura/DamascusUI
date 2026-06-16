@@ -1,5 +1,5 @@
-import { createSignal, createResource, For, Show, onMount, createEffect } from "solid-js";
-import { setWindowTitle, setMenuBar, openWindow, setDockBadge } from "../../../../ui/src/bridge";
+import { createSignal, createResource, For, Show, onMount, createEffect, onCleanup } from "solid-js";
+import { setWindowTitle, setMenuBar, openWindow, setDockBadge, publish, subscribe } from "../../../../ui/src/bridge";
 
 interface Todo {
   id: number;
@@ -26,6 +26,22 @@ export default function App() {
       { kind: "separator" },
       { kind: "action", label: "About Todos", id: "about" },
     ]);
+
+    const unsubscribe = subscribe("todos.window-opened", () => {
+      refetch();
+    });
+    const unsubscribeMenuNew = subscribe("menu.new-window", () => {
+      refetch();
+    });
+    const unsubscribeMenuAbout = subscribe("menu.about", (payload) => {
+      if (payload && typeof payload === "object" && "message" in payload) {
+        const message = String((payload as { message: unknown }).message);
+        window.alert(message);
+      }
+    });
+    onCleanup(unsubscribe);
+    onCleanup(unsubscribeMenuNew);
+    onCleanup(unsubscribeMenuAbout);
   });
 
   // Bridge: update dock badge with pending count
@@ -114,7 +130,10 @@ export default function App() {
       </Show>
 
       <div class="mt-8 text-center">
-        <button onClick={() => openWindow("Todos", window.location.href)}
+        <button onClick={() => {
+          openWindow("Todos", window.location.href);
+          publish("todos.window-opened", { openedAt: Date.now() }, { scope: "except-self" });
+        }}
           class="px-6 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 text-gray-200 font-medium transition-colors cursor-pointer">
           Open in New Window
         </button>

@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Text.Json;
+using System.Collections.Concurrent;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
@@ -16,6 +17,9 @@ public sealed class App : Application
     private Process? _coreProcess;
     private ViewerServer? _server;
     private string _lastDockBadge = string.Empty;
+    private long _nextWindowId = 1;
+    private readonly ConcurrentDictionary<long, Window> _windows = new();
+    private long _focusedWindowId;
 
     public override void Initialize()
     {
@@ -58,10 +62,17 @@ public sealed class App : Application
 
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
-            desktop.MainWindow = new MainWindow();
+            var mainWindowId = NextWindowId();
+            desktop.MainWindow = CreateWindow(mainWindowId, WindowTitle, FrontendUrl);
             desktop.Startup += (_, _) =>
             {
-                _server = new ViewerServer(MainWindow.ViewerPort, OpenNewWindow, SetMenuBar, SetDockBadge);
+                _server = new ViewerServer(
+                    MainWindow.ViewerPort,
+                    OpenNewWindow,
+                    SetMenuBar,
+                    SetDockBadge,
+                    SetWindowTitle,
+                    FocusedWindowId);
                 _server.Start();
             };
             desktop.Exit += (_, _) =>
@@ -99,36 +110,62 @@ public sealed class App : Application
         catch { }
     }
 
-    private void OpenNewWindow(string title, string url)
+    private Window CreateWindow(long windowId, string title, string url)
+    {
+        var source = BuildWindowUri(windowId, NormalizeViewerUrl(url));
+        var window = new MainWindow(windowId, source)
+        {
+            Title = title,
+        };
+        _windows[windowId] = window;
+        window.Activated += (_, _) => _focusedWindowId = windowId;
+        window.Closed += (_, _) => _windows.TryRemove(windowId, out _);
+        ApplyDockBadge(window);
+        return window;
+    }
+
+    private void OpenNewWindow(long sourceWindowId, string title, string url)
     {
         Dispatcher.UIThread.Post(() =>
         {
-            var win = new Window
-            {
-                Title = title,
-                Width = 1024,
-                Height = 768,
-                Content = new NativeWebView { Source = new Uri(url) },
-            };
-            ApplyDockBadge(win);
+            var win = CreateWindow(NextWindowId(), title, url);
             win.Show();
         });
     }
 
-    public void SendOpenWindow(string title, string url)
+    public void SendOpenWindow(long sourceWindowId, string title, string url)
     {
-        OpenNewWindow(title, NormalizeViewerUrl(url));
+        OpenNewWindow(sourceWindowId, title, NormalizeViewerUrl(url));
     }
 
-    private void SetMenuBar(List<NativeMenuItem> items)
+    private void SetMenuBar(long windowId, List<NativeMenuItemDef> items)
     {
-        if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop
-            && desktop.MainWindow is not null)
+        if (_windows.TryGetValue(windowId, out var window) is false)
         {
-            var menu = new NativeMenu();
-            foreach (var item in items) menu.Items.Add(item);
-            NativeMenu.SetMenu(this, menu);
+            return;
         }
+
+        var appMenu = new NativeMenu();
+        var appRoot = new NativeMenuItem(WindowTitle);
+        appRoot.Menu = new NativeMenu();
+        appRoot.Menu.Items.Add(CreateMenuActionItem("About Todos", "about"));
+        appMenu.Items.Add(appRoot);
+        NativeMenu.SetMenu(this, appMenu);
+
+        var windowMenu = new NativeMenu();
+        var fileMenu = new NativeMenuItem("File");
+        fileMenu.Menu = new NativeMenu();
+        foreach (var item in items)
+        {
+            if (item.Id == "about")
+            {
+                continue;
+            }
+
+            fileMenu.Menu.Items.Add(ToNativeMenuItem(item));
+        }
+        windowMenu.Items.Add(fileMenu);
+        NativeMenu.SetMenu(window, windowMenu);
     }
 
     private void SetDockBadge(string text)
@@ -150,6 +187,14 @@ public sealed class App : Application
         window.Tag = _lastDockBadge;
     }
 
+    private void SetWindowTitle(long windowId, string title)
+    {
+        if (_windows.TryGetValue(windowId, out var window))
+        {
+            window.Title = title;
+        }
+    }
+
     public string NormalizeViewerUrl(string? url)
     {
         if (!string.IsNullOrWhiteSpace(url))
@@ -158,6 +203,36 @@ public sealed class App : Application
         }
 
         return FrontendUrl;
+    }
+
+    private Uri BuildWindowUri(long windowId, string url)
+    {
+        var builder = new UriBuilder(url);
+        var windowParam = $"shellWindowId={windowId}";
+        if (string.IsNullOrEmpty(builder.Query))
+        {
+            builder.Query = windowParam;
+        }
+        else
+        {
+            builder.Query = $"{builder.Query.TrimStart('?')}&{windowParam}";
+        }
+        return builder.Uri;
+    }
+
+    private long NextWindowId()
+    {
+        return _nextWindowId++;
+    }
+
+    public long FocusedWindowId()
+    {
+        return _focusedWindowId;
+    }
+
+    public ViewerServer? GetViewerServer()
+    {
+        return _server;
     }
 
     public NativeMenuItem CreateActionMenuItem(string label, Action onClick)
@@ -176,29 +251,51 @@ public sealed class App : Application
     {
         return CreateActionMenuItem("About Todos", () =>
         {
-            var owner = (ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow;
-            var dialog = new Window
+            _server?.PublishFromShell("menu.about", JsonSerializer.SerializeToElement(new
             {
-                Title = "About Todos",
-                Width = 360,
-                Height = 180,
-                CanResize = false,
-                Content = new TextBlock
-                {
-                    Text = "Todos\nDamascusUI example app",
-                    TextAlignment = Avalonia.Media.TextAlignment.Center,
-                    VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center,
-                    HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center,
-                },
-            };
+                title = "About Todos",
+                message = "Todos\nDamascusUI example app",
+            }), "window", FocusedWindowId());
+        });
+    }
 
-            if (owner is null)
+    private NativeMenuItem CreateMenuActionItem(string label, string id)
+    {
+        return CreateActionMenuItem(label, () =>
+        {
+            if (id == "new")
             {
-                dialog.Show();
-                return;
+                SendOpenWindow(FocusedWindowId(), "Todos", FrontendUrl);
             }
 
-            _ = dialog.ShowDialog(owner);
+            _server?.PublishFromShell(
+                $"menu.{id}",
+                JsonSerializer.SerializeToElement(new { id, label }),
+                "window",
+                FocusedWindowId());
         });
+    }
+
+    private NativeMenuItem ToNativeMenuItem(NativeMenuItemDef def)
+    {
+        return def.Kind switch
+        {
+            "separator" => CreateSeparatorMenuItem(),
+            "submenu" => CreateSubmenuItem(def),
+            _ => CreateMenuActionItem(def.Label ?? string.Empty, def.Id ?? string.Empty),
+        };
+    }
+
+    private NativeMenuItem CreateSubmenuItem(NativeMenuItemDef def)
+    {
+        var item = new NativeMenuItem(def.Label ?? string.Empty)
+        {
+            Menu = new NativeMenu(),
+        };
+        foreach (var child in def.Items ?? [])
+        {
+            item.Menu.Items.Add(ToNativeMenuItem(child));
+        }
+        return item;
     }
 }
