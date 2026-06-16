@@ -31,6 +31,7 @@ public sealed class App : Application
     public override void OnFrameworkInitializationCompleted()
     {
         LoadConfig();
+        TryApplyBundledDockIcon();
         var args = Environment.GetCommandLineArgs();
         for (int i = 1; i < args.Length; i++)
         {
@@ -70,10 +71,12 @@ public sealed class App : Application
                     MainWindow.ViewerPort,
                     OpenNewWindow,
                     SetMenuBar,
+                    SetDockIcon,
                     SetDockBadge,
                     SetWindowTitle,
                     FocusedWindowId);
                 _server.Start();
+                _ = RefreshDockIconFromFrontendAsync();
             };
             desktop.Exit += (_, _) =>
             {
@@ -179,6 +182,45 @@ public sealed class App : Application
         if (desktop.MainWindow is not null)
         {
             ApplyDockBadge(desktop.MainWindow);
+        }
+    }
+
+    private void SetDockIcon(string icon)
+    {
+        MacDock.TrySetDockIconFromBase64(icon);
+    }
+
+    private void TryApplyBundledDockIcon()
+    {
+        var favicon = Path.Combine(AppContext.BaseDirectory, "favicon.ico");
+        if (File.Exists(favicon))
+        {
+            SetDockIcon(Convert.ToBase64String(File.ReadAllBytes(favicon)));
+        }
+    }
+
+    private async Task RefreshDockIconFromFrontendAsync()
+    {
+        try
+        {
+            using var http = new HttpClient();
+            using var response = await http.GetAsync(new Uri(new Uri(FrontendUrl), "/favicon.ico"));
+            if (!response.IsSuccessStatusCode)
+            {
+                return;
+            }
+
+            var bytes = await response.Content.ReadAsByteArrayAsync();
+            if (bytes.Length == 0)
+            {
+                return;
+            }
+
+            var base64 = Convert.ToBase64String(bytes);
+            Dispatcher.UIThread.Post(() => SetDockIcon(base64));
+        }
+        catch
+        {
         }
     }
 

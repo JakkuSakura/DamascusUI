@@ -139,6 +139,10 @@ export function setDockBadge(text: string) {
   send("set-dock-badge", { text });
 }
 
+export function setDockIcon(base64Image: string) {
+  send("set-dock-icon", { icon: base64Image });
+}
+
 export function subscribe(topic: string, handler: EventHandler): () => void {
   connect();
   subscribedTopics.add(topic);

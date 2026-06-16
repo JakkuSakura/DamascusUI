@@ -21,6 +21,7 @@ public sealed class ViewerServer : IDisposable
     private readonly int _port;
     private readonly Action<long, string, string> _onOpenWindow;
     private readonly Action<long, List<NativeMenuItemDef>> _onSetMenu;
+    private readonly Action<string> _onSetDockIcon;
     private readonly Action<string> _onSetDockBadge;
     private readonly Action<long, string> _onSetWindowTitle;
     private readonly Func<long> _focusedWindowId;
@@ -31,6 +32,7 @@ public sealed class ViewerServer : IDisposable
         int port,
         Action<long, string, string> onOpenWindow,
         Action<long, List<NativeMenuItemDef>> onSetMenu,
+        Action<string> onSetDockIcon,
         Action<string> onSetDockBadge,
         Action<long, string> onSetWindowTitle,
         Func<long> focusedWindowId)
@@ -38,6 +40,7 @@ public sealed class ViewerServer : IDisposable
         _port = port;
         _onOpenWindow = onOpenWindow;
         _onSetMenu = onSetMenu;
+        _onSetDockIcon = onSetDockIcon;
         _onSetDockBadge = onSetDockBadge;
         _onSetWindowTitle = onSetWindowTitle;
         _focusedWindowId = focusedWindowId;
@@ -166,6 +169,9 @@ public sealed class ViewerServer : IDisposable
             case "set-dock-badge":
                 await HandleSetDockBadge(message);
                 break;
+            case "set-dock-icon":
+                await HandleSetDockIcon(message);
+                break;
             case "subscribe":
                 await HandleSubscribe(connection, message);
                 break;
@@ -244,6 +250,18 @@ public sealed class ViewerServer : IDisposable
         }
 
         Dispatcher.UIThread.Post(() => _onSetDockBadge(payload.Text));
+        await Task.CompletedTask;
+    }
+
+    private async Task HandleSetDockIcon(JsonElement message)
+    {
+        var payload = message.Deserialize<SetDockIconRequest>(JsonOptions);
+        if (payload is null)
+        {
+            return;
+        }
+
+        Dispatcher.UIThread.Post(() => _onSetDockIcon(payload.Icon));
         await Task.CompletedTask;
     }
 
@@ -409,6 +427,8 @@ record RegisterRequest([property: JsonPropertyName("windowId")] long WindowId);
 record SetTitleRequest([property: JsonPropertyName("title")] string Title);
 
 record SetDockBadgeRequest([property: JsonPropertyName("text")] string Text);
+
+record SetDockIconRequest([property: JsonPropertyName("icon")] string Icon);
 
 record SetMenuRequest([property: JsonPropertyName("items")] List<NativeMenuItemDef> Items);
 

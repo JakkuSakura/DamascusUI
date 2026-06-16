@@ -20,6 +20,7 @@ build:
 # ── Run (release) ──────────────────────────────────────────────────────────────
 
 run: build
+    cp ui/public/favicon.ico ../../shell/favicon.ico
     cd ../.. && just build-shell examples/todos/damascus.json
     cd ../.. && shell/publish/DamascusUI --spawn target/release/todos
 
@@ -29,6 +30,7 @@ run-core:
 # ── Package ────────────────────────────────────────────────────────────────────
 
 package: build
+    cp ui/public/favicon.ico ../../shell/favicon.ico
     cd ../.. && just package target/release/todos examples/todos/damascus.json
 
 check:
