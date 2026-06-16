@@ -1,4 +1,5 @@
-import { createSignal, createResource, For, Show } from "solid-js";
+import { createSignal, createResource, For, Show, onMount } from "solid-js";
+import { setWindowTitle } from "../../../../ui/src/bridge";
 
 interface Todo {
   id: number;
@@ -16,6 +17,8 @@ async function fetchTodos(): Promise<Todo[]> {
 export default function App() {
   const [todos, { refetch }] = createResource(fetchTodos);
   const [title, setTitle] = createSignal("");
+
+  onMount(() => setWindowTitle("Todos"));
 
   async function addTodo(e: SubmitEvent) {
     e.preventDefault();
