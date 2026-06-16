@@ -9,8 +9,8 @@ fn main() {
         println!("cargo:rerun-if-changed=../ui/dist");
     }
 
-    // Bundle viewer (copy entire viewer/publish → viewer-binary/)
-    let csharp_publish = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../viewer/publish");
+    // Bundle viewer (copy entire shell/publish → viewer-binary/)
+    let csharp_publish = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../shell/publish");
     let embed_dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("viewer-binary");
 
     if csharp_publish.exists() {
@@ -31,7 +31,7 @@ fn main() {
                 .unwrap();
         }
 
-        println!("cargo:warning=viewer bundled from viewer/publish");
-        println!("cargo:rerun-if-changed=../viewer/publish");
+        println!("cargo:warning=viewer bundled from shell/publish");
+        println!("cargo:rerun-if-changed=../shell/publish");
     }
 }

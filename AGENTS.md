@@ -66,5 +66,5 @@ Avalonia ──┘   (webview)
 | `core/src/protocol.rs` | Shared protocol types |
 | `core/src/codegen.rs` | WIT → Rust/TS/C# generator |
 | `ui/src/codegen/` | Generated TS API clients |
-| `viewer/codegen/` | Generated C# API clients |
+| `shell/codegen/` | Generated C# API clients |
 | `wit/` | Framework WIT protocols |

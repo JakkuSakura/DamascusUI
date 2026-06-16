@@ -32,16 +32,16 @@ build-todos:
 build-todos-fe:
     cd examples/todos/ui && pnpm install && pnpm build
 
-# Build Avalonia desktop viewer
-build-viewer:
-    cd viewer && dotnet publish -c Release -o publish --self-contained -r osx-arm64
-    mkdir -p viewer/publish/DamascusUI.app/Contents/MacOS
-    cp -a viewer/publish/* viewer/publish/DamascusUI.app/Contents/MacOS/ 2>/dev/null || true
-    cp viewer/Info.plist viewer/publish/DamascusUI.app/Contents/
-    codesign --force --deep --entitlements viewer/Entitlements.plist -s - viewer/publish/DamascusUI.app
+# Build Avalonia desktop shell
+build-shell:
+    cd shell && dotnet publish -c Release -o publish --self-contained -r osx-arm64
+    mkdir -p shell/publish/DamascusUI.app/Contents/MacOS
+    cp -a shell/publish/* shell/publish/DamascusUI.app/Contents/MacOS/ 2>/dev/null || true
+    cp shell/Info.plist shell/publish/DamascusUI.app/Contents/
+    codesign --force --deep --entitlements shell/Entitlements.plist -s - shell/publish/DamascusUI.app
 
-# Build everything (ui → viewer → Rust)
-build-all: build-fe build-viewer
+# Build everything (ui → shell → Rust)
+build-all: build-fe build-shell
     cargo build -p damascus --no-default-features -F tokio
 
 # ── Check ──────────────────────────────────────────────────────────────────────
@@ -66,8 +66,8 @@ dev-fe:
 dev-todos-fe:
     cd examples/todos/ui && pnpm dev
 
-# Launch Avalonia desktop viewer (requires core on :3000)
-dev-viewer:
+# Launch Avalonia desktop shell (requires core on :3000)
+dev-shell:
     cd csharp && dotnet run
 
 # Start example todos core

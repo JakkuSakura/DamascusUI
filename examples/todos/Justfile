@@ -9,9 +9,9 @@ default:
 build-fe:
     cd ui && pnpm build
 
-# Build everything (ui → viewer → core)
+# Build everything (ui → shell → core)
 build: build-fe
-    cd ../.. && just build-viewer
+    cd ../.. && just build-shell
     cargo build -p todos
 
 # ── Run ────────────────────────────────────────────────────────────────────────

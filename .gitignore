@@ -4,8 +4,8 @@
 /dist/
 
 # C# / .NET
-/viewer/bin/
-/viewer/obj/
+/shell/bin/
+/shell/obj/
 *.user
 *.suo
 *.vs/
@@ -39,5 +39,5 @@ logs/
 /tmp/
 artifacui/
 *.png
-**/viewer-binary/
-viewer/publish/
+**/shell-binary/
+shell/publish/

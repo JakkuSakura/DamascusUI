@@ -56,7 +56,7 @@ fn run_codegen(path: &str) {
 
     let rs_dir = root.join("../../core/src/codegen");
     let ts_dir = root.join("../../ui/src/codegen");
-    let cs_dir = root.join("../../viewer/codegen");
+    let cs_dir = root.join("../../shell/codegen");
 
     fs::create_dir_all(&rs_dir).ok();
     fs::create_dir_all(&ts_dir).ok();
@@ -68,7 +68,7 @@ fn run_codegen(path: &str) {
 
     println!("  ✓ core/src/codegen/{name}.rs");
     println!("  ✓ ui/src/codegen/{name}.ts");
-    println!("  ✓ viewer/codegen/{}.cs", pascal(&name));
+    println!("  ✓ shell/codegen/{}.cs", pascal(&name));
 }
 
 fn pascal(s: &str) -> String {
