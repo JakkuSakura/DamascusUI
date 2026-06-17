@@ -166,9 +166,7 @@ public sealed class App : Application
         appRoot.Menu = new NativeMenu();
         appRoot.Menu.Items.Add(CreateMenuActionItem("About Todos", "about"));
         appMenu.Items.Add(appRoot);
-        NativeMenu.SetMenu(this, appMenu);
 
-        var windowMenu = new NativeMenu();
         var fileMenu = new NativeMenuItem("File");
         fileMenu.Menu = new NativeMenu();
         foreach (var item in items)
@@ -180,8 +178,9 @@ public sealed class App : Application
 
             fileMenu.Menu.Items.Add(ToNativeMenuItem(item));
         }
-        windowMenu.Items.Add(fileMenu);
-        NativeMenu.SetMenu(window, windowMenu);
+        appMenu.Items.Add(fileMenu);
+
+        NativeMenu.SetMenu(this, appMenu);
     }
 
     private void SetDockBadge(string text)
