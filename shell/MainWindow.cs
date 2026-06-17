@@ -7,6 +7,7 @@ namespace DamascusUI;
 public sealed class MainWindow : Window
 {
     public const int ViewerPort = 45769;
+    private const int ResizeBorder = 4;
     public long WindowId { get; }
 
     public MainWindow(long windowId, Uri source, bool transparent = false, bool decorations = true)
@@ -37,7 +38,14 @@ public sealed class MainWindow : Window
             Background = transparent ? Brushes.Transparent : null,
         };
 
-        Content = webview;
+        // Wrap in a container with a small transparent border for native resize handles
+        Content = new Border
+        {
+            Child = webview,
+            Margin = decorations ? new Thickness(0) : new Thickness(ResizeBorder),
+            Background = transparent ? Brushes.Transparent : null,
+        };
+
         webview.Source = source;
     }
 }

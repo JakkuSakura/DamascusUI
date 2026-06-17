@@ -86,3 +86,18 @@ html, body, #root {
 .pulse-glow {
   animation: pulse-glow 2s infinite;
 }
+
+/* Resize handles for frameless windows */
+.resize-handle {
+  position: fixed;
+  z-index: 9999;
+  -webkit-app-region: no-drag;
+}
+.resize-n  { top: 0; left: 4px; right: 4px; height: 4px; cursor: n-resize; }
+.resize-s  { bottom: 0; left: 4px; right: 4px; height: 4px; cursor: s-resize; }
+.resize-e  { top: 4px; bottom: 4px; right: 0; width: 4px; cursor: e-resize; }
+.resize-w  { top: 4px; bottom: 4px; left: 0; width: 4px; cursor: w-resize; }
+.resize-ne { top: 0; right: 0; width: 8px; height: 8px; cursor: ne-resize; }
+.resize-nw { top: 0; left: 0; width: 8px; height: 8px; cursor: nw-resize; }
+.resize-se { bottom: 0; right: 0; width: 8px; height: 8px; cursor: se-resize; }
+.resize-sw { bottom: 0; left: 0; width: 8px; height: 8px; cursor: sw-resize; }

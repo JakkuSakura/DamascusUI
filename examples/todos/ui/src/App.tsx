@@ -181,6 +181,8 @@ export default function App() {
           {notificationWarning()}
         </div>
       </Show>
+      {/* Resize handles for frameless window */}
+      <ResizeHandles />
     </div>
   );
 }
@@ -217,5 +219,16 @@ function TodoItem(props: {
         ✕
       </button>
     </div>
+  );
+}
+
+function ResizeHandles() {
+  const edges = ["n", "s", "e", "w", "ne", "nw", "se", "sw"] as const;
+  return (
+    <>
+      {edges.map((e) => (
+        <div class={`resize-handle resize-${e}`} />
+      ))}
+    </>
   );
 }
