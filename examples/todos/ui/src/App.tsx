@@ -102,11 +102,11 @@ export default function App() {
   };
 
   return (
-    <div class="h-screen flex flex-col p-3 gap-3 select-none" style="border-radius: 16px; overflow: hidden;">
+    <div class="h-screen flex flex-col p-3 gap-3 select-none window-glass" style="border-radius: 16px; overflow: hidden;">
       {/* Title bar — draggable */}
       <div class="titlebar glass-sm px-4 py-3 flex items-center shrink-0">
-        <h1 class="text-sm font-semibold tracking-wide text-white/80 flex-1">Todos</h1>
-        <span class="text-xs text-white/40 tabular-nums">
+        <h1 class="text-sm font-semibold tracking-wide text-gray-300 flex-1">Todos</h1>
+        <span class="text-xs text-gray-500 tabular-nums">
           {pending().length} remaining
         </span>
       </div>
@@ -119,11 +119,10 @@ export default function App() {
             value={t()}
             onInput={(e) => setT(e.currentTarget.value)}
             placeholder="What needs to be done?"
-            class="flex-1 px-4 py-2.5 glass-input text-sm text-white/90
-                   placeholder:text-white/25"
+            class="flex-1 px-4 py-2.5 glass-input text-sm"
           />
           <button type="submit"
-            class="px-5 py-2.5 glass text-sm font-medium text-white/80 hover:text-white hover-glass cursor-pointer">
+            class="px-5 py-2.5 glass text-sm font-medium text-gray-300 hover:text-gray-100 hover-glass cursor-pointer">
             Add
           </button>
         </form>
@@ -132,10 +131,10 @@ export default function App() {
       {/* Todo list */}
       <div class="flex-1 overflow-y-auto space-y-1.5 pr-0.5">
         <Show when={!todos.loading} fallback={
-          <div class="glass-sm px-4 py-8 text-center text-sm text-white/30">Loading...</div>
+          <div class="glass-sm px-4 py-8 text-center text-sm text-gray-500">Loading...</div>
         }>
           <Show when={todos() && (pending().length > 0 || done().length > 0)} fallback={
-            <div class="glass-sm px-4 py-12 text-center text-sm text-white/25">
+            <div class="glass-sm px-4 py-12 text-center text-sm text-gray-500">
               No todos yet. Add one above!
             </div>
           }>
@@ -144,7 +143,7 @@ export default function App() {
             </For>
             <Show when={done().length > 0 && pending().length > 0}>
               <div class="py-2 px-4">
-                <div class="border-t border-white/5" />
+                <div class="border-t border-gray-700/30" />
               </div>
             </Show>
             <For each={done()}>
@@ -160,7 +159,7 @@ export default function App() {
           openWindow("Todos", window.location.href);
           publish("todos.window-opened", { openedAt: Date.now() }, { scope: "except-self" });
         }}
-          class="flex-1 py-2.5 glass-sm text-xs font-medium text-white/50 hover:text-white/70 hover-glass cursor-pointer
+          class="flex-1 py-2.5 glass-sm text-xs font-medium text-gray-400 hover:text-gray-200 hover-glass cursor-pointer
                  text-center">
           New Window
         </button>
@@ -170,14 +169,14 @@ export default function App() {
             payload: { title: "Todos", source: "todos-demo" },
           });
         }}
-          class="flex-1 py-2.5 glass-sm text-xs font-medium text-white/50 hover:text-white/70 hover-glass cursor-pointer
+          class="flex-1 py-2.5 glass-sm text-xs font-medium text-gray-400 hover:text-gray-200 hover-glass cursor-pointer
                  text-center">
           Notify
         </button>
       </div>
 
       <Show when={notificationWarning()}>
-        <div class="glass-sm px-4 py-3 text-xs text-amber-200/80 shrink-0">
+        <div class="glass-sm px-4 py-3 text-xs text-amber-300/80 shrink-0">
           {notificationWarning()}
         </div>
       </Show>
@@ -200,22 +199,22 @@ function TodoItem(props: {
         transition-all duration-200
         ${props.todo.done
           ? "border-blue-400/60 bg-blue-400/20"
-          : "border-white/15 group-hover:border-white/30"}`}>
+          : "border-gray-600 group-hover:border-gray-400"}`}>
         <Show when={props.todo.done}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="oklch(80% 0.12 255)" stroke-width="3"
+          <svg viewBox="0 0 24 24" fill="none" stroke="rgb(107 140 255)" stroke-width="3"
             class="w-2.5 h-2.5">
             <path d="M5 13l4 4L19 7" />
           </svg>
         </Show>
       </div>
       <span class={`flex-1 text-sm transition-all duration-200
-        ${props.todo.done ? "line-through text-white/25" : "text-white/80"}`}>
+        ${props.todo.done ? "line-through text-gray-600" : "text-gray-300"}`}>
         {props.todo.title}
       </span>
       <button onClick={(e) => { e.stopPropagation(); props.onDelete(props.todo.id); }}
-        class="opacity-0 group-hover:opacity-100 text-white/20 hover:text-red-300/80
+        class="opacity-0 group-hover:opacity-100 text-gray-600 hover:text-red-400
                transition-all duration-200 cursor-pointer text-xs w-5 h-5 flex items-center justify-center
-               rounded-full hover:bg-white/5">
+               rounded-full hover:bg-gray-700/50">
         ✕
       </button>
     </div>

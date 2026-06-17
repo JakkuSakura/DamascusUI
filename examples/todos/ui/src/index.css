@@ -1,12 +1,11 @@
 @import "tailwindcss";
 
 @theme {
-  --color-glass-5: oklch(100% 0 0 / 5%);
-  --color-glass-8: oklch(100% 0 0 / 8%);
-  --color-glass-10: oklch(100% 0 0 / 10%);
-  --color-glass-15: oklch(100% 0 0 / 15%);
-  --color-glass-20: oklch(100% 0 0 / 20%);
-  --color-glass-border: oklch(100% 0 0 / 10%);
+  --color-glass-bg: #2a2a32;
+  --color-glass-border: #3a3a44;
+  --color-glass-hover: #353540;
+  --color-accent: #6b8cff;
+  --color-accent-dim: #4a5fb0;
 }
 
 html, body, #root {
@@ -26,20 +25,27 @@ html, body, #root {
   -webkit-app-region: no-drag;
 }
 
+/* Whole-window frosted dark glass */
+.window-glass {
+  background: rgba(28, 28, 34, 0.88);
+  backdrop-filter: blur(32px) saturate(120%);
+  -webkit-backdrop-filter: blur(32px) saturate(120%);
+}
+
 /* Glass card */
 .glass {
-  background: oklch(100% 0 0 / 18%);
-  backdrop-filter: blur(28px) saturate(180%);
-  -webkit-backdrop-filter: blur(28px) saturate(180%);
-  border: 1px solid oklch(100% 0 0 / 12%);
+  background: rgba(40, 40, 50, 0.75);
+  backdrop-filter: blur(20px) saturate(120%);
+  -webkit-backdrop-filter: blur(20px) saturate(120%);
+  border: 1px solid rgba(255, 255, 255, 0.07);
   border-radius: 14px;
 }
 
 .glass-sm {
-  background: oklch(100% 0 0 / 14%);
-  backdrop-filter: blur(20px) saturate(150%);
-  -webkit-backdrop-filter: blur(20px) saturate(150%);
-  border: 1px solid oklch(100% 0 0 / 8%);
+  background: rgba(35, 35, 44, 0.70);
+  backdrop-filter: blur(16px) saturate(120%);
+  -webkit-backdrop-filter: blur(16px) saturate(120%);
+  border: 1px solid rgba(255, 255, 255, 0.05);
   border-radius: 10px;
 }
 
@@ -57,30 +63,35 @@ html, body, #root {
 
 /* Frosted input */
 .glass-input {
-  background: oklch(100% 0 0 / 10%);
+  background: rgba(50, 50, 62, 0.65);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
-  border: 1px solid oklch(100% 0 0 / 10%);
+  border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 10px;
+  color: #d1d5db;
+}
+
+.glass-input::placeholder {
+  color: #6b7280;
 }
 
 .glass-input:focus {
-  background: oklch(100% 0 0 / 16%);
-  border-color: oklch(65% 0.18 255 / 50%);
+  background: rgba(60, 60, 74, 0.75);
+  border-color: rgba(107, 140, 255, 0.4);
   outline: none;
-  box-shadow: 0 0 0 2px oklch(65% 0.18 255 / 20%);
+  box-shadow: 0 0 0 2px rgba(107, 140, 255, 0.15);
 }
 
 /* Subtle hover highlight */
 .hover-glass:hover {
-  background: oklch(100% 0 0 / 16%);
-  border-color: oklch(100% 0 0 / 18%);
+  background: rgba(50, 50, 62, 0.80);
+  border-color: rgba(255, 255, 255, 0.10);
 }
 
 /* Pulse animation for notification badge */
 @keyframes pulse-glow {
-  0%, 100% { box-shadow: 0 0 0 0 oklch(65% 0.18 255 / 0%); }
-  50% { box-shadow: 0 0 16px 4px oklch(65% 0.18 255 / 25%); }
+  0%, 100% { box-shadow: 0 0 0 0 rgba(107, 140, 255, 0); }
+  50% { box-shadow: 0 0 16px 4px rgba(107, 140, 255, 0.25); }
 }
 
 .pulse-glow {
