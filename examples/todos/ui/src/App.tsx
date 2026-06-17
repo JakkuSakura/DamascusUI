@@ -102,7 +102,7 @@ export default function App() {
   };
 
   return (
-    <div class="h-screen flex flex-col p-3 gap-3 select-none">
+    <div class="h-screen flex flex-col p-3 gap-3 select-none" style="border-radius: 16px; overflow: hidden;">
       {/* Title bar — draggable */}
       <div class="titlebar glass-sm px-4 py-3 flex items-center shrink-0">
         <h1 class="text-sm font-semibold tracking-wide text-white/80 flex-1">Todos</h1>

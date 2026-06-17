@@ -28,19 +28,19 @@ html, body, #root {
 
 /* Glass card */
 .glass {
-  background: oklch(100% 0 0 / 6%);
-  backdrop-filter: blur(24px) saturate(180%);
-  -webkit-backdrop-filter: blur(24px) saturate(180%);
-  border: 1px solid oklch(100% 0 0 / 10%);
-  border-radius: 16px;
+  background: oklch(100% 0 0 / 18%);
+  backdrop-filter: blur(28px) saturate(180%);
+  -webkit-backdrop-filter: blur(28px) saturate(180%);
+  border: 1px solid oklch(100% 0 0 / 12%);
+  border-radius: 14px;
 }
 
 .glass-sm {
-  background: oklch(100% 0 0 / 4%);
-  backdrop-filter: blur(16px) saturate(150%);
-  -webkit-backdrop-filter: blur(16px) saturate(150%);
-  border: 1px solid oklch(100% 0 0 / 7%);
-  border-radius: 12px;
+  background: oklch(100% 0 0 / 14%);
+  backdrop-filter: blur(20px) saturate(150%);
+  -webkit-backdrop-filter: blur(20px) saturate(150%);
+  border: 1px solid oklch(100% 0 0 / 8%);
+  border-radius: 10px;
 }
 
 /* Smooth transitions */
@@ -57,24 +57,24 @@ html, body, #root {
 
 /* Frosted input */
 .glass-input {
-  background: oklch(100% 0 0 / 5%);
+  background: oklch(100% 0 0 / 10%);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
-  border: 1px solid oklch(100% 0 0 / 8%);
-  border-radius: 12px;
+  border: 1px solid oklch(100% 0 0 / 10%);
+  border-radius: 10px;
 }
 
 .glass-input:focus {
-  background: oklch(100% 0 0 / 10%);
+  background: oklch(100% 0 0 / 16%);
   border-color: oklch(65% 0.18 255 / 50%);
   outline: none;
-  box-shadow: 0 0 0 2px oklch(65% 0.18 255 / 15%);
+  box-shadow: 0 0 0 2px oklch(65% 0.18 255 / 20%);
 }
 
 /* Subtle hover highlight */
 .hover-glass:hover {
-  background: oklch(100% 0 0 / 10%);
-  border-color: oklch(100% 0 0 / 15%);
+  background: oklch(100% 0 0 / 16%);
+  border-color: oklch(100% 0 0 / 18%);
 }
 
 /* Pulse animation for notification badge */
