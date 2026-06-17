@@ -117,19 +117,12 @@ public sealed class App : Application
         _coreProcess = Process.Start(new ProcessStartInfo(resolvedPath)
         {
             UseShellExecute = false,
-            RedirectStandardOutput = true,
             WorkingDirectory = Path.GetDirectoryName(resolvedPath) ?? LaunchWorkingDirectory,
         });
 
         if (_coreProcess is null)
         {
             return;
-        }
-
-        var line = _coreProcess.StandardOutput.ReadLine();
-        if (line?.StartsWith("DAMASCUS_ADDR=") == true)
-        {
-            FrontendUrl = line["DAMASCUS_ADDR=".Length..];
         }
     }
 
