@@ -22,6 +22,10 @@ public sealed class MainWindow : Window
             WindowDecorations = Avalonia.Controls.WindowDecorations.None;
             ExtendClientAreaToDecorationsHint = true;
             ExtendClientAreaTitleBarHeightHint = 0;
+            // WindowDecorations.None may strip NSResizableWindowMask on macOS.
+            // Restore it via native call once the window handle is available.
+            CanResize = true;
+            Opened += (_, _) => MacWindowHelper.RestoreResizeMask(this);
         }
 
         if (transparent)

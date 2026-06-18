@@ -80,12 +80,14 @@ internal static class MacNotification
         string body,
         Action onClick)
     {
-        var focusLikelyActive = MacFocus.TryIsFocusLikelyActive();
-        if (focusLikelyActive == true)
+        // Check focus on a background thread; this is diagnostic-only and must not
+        // block the main thread (GetNotificationSettings callback runs on main queue).
+        _ = Task.Run(() =>
         {
-            Console.Error.WriteLine(
-                "[MacNotification] warning: Focus/Do Not Disturb appears active; macOS may mute or delay the notification banner.");
-        }
+            if (MacFocus.TryIsFocusLikelyActive() == true)
+                Console.Error.WriteLine(
+                    "[MacNotification] warning: Focus/Do Not Disturb appears active; macOS may mute or delay the notification banner.");
+        });
 
         var content = new UNMutableNotificationContent
         {

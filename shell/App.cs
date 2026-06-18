@@ -24,7 +24,9 @@ public sealed class App : Application
     private string _lastDockBadge = string.Empty;
     private long _nextWindowId = 1;
     private readonly ConcurrentDictionary<long, Window> _windows = new();
+    private readonly ConcurrentDictionary<long, NativeMenu> _windowMenus = new();
     private long _focusedWindowId;
+    private NativeMenu? _applicationMenu;
 
     public override void Initialize()
     {
@@ -135,7 +137,11 @@ public sealed class App : Application
         };
         _windows[windowId] = window;
         window.Activated += (_, _) => _focusedWindowId = windowId;
-        window.Closed += (_, _) => _windows.TryRemove(windowId, out _);
+        window.Closed += (_, _) =>
+        {
+            _windows.TryRemove(windowId, out _);
+            _windowMenus.TryRemove(windowId, out _);
+        };
         ApplyDockBadge(window);
         return window;
     }
@@ -161,14 +167,43 @@ public sealed class App : Application
             return;
         }
 
-        var appMenu = new NativeMenu();
-        var appRoot = new NativeMenuItem(WindowTitle);
-        appRoot.Menu = new NativeMenu();
+        if (_applicationMenu is null)
+        {
+            _applicationMenu = new NativeMenu();
+            NativeMenu.SetMenu(this, _applicationMenu);
+        }
+
+        RebuildApplicationMenu(_applicationMenu);
+
+        var windowMenu = _windowMenus.GetOrAdd(windowId, _ =>
+        {
+            var menu = new NativeMenu();
+            NativeMenu.SetMenu(window, menu);
+            return menu;
+        });
+
+        RebuildWindowMenu(windowMenu, items);
+    }
+
+    private void RebuildApplicationMenu(NativeMenu appMenu)
+    {
+        appMenu.Items.Clear();
+        var appRoot = new NativeMenuItem(WindowTitle)
+        {
+            Menu = new NativeMenu(),
+        };
         appRoot.Menu.Items.Add(CreateMenuActionItem("About Todos", "about"));
         appMenu.Items.Add(appRoot);
+    }
 
-        var fileMenu = new NativeMenuItem("File");
-        fileMenu.Menu = new NativeMenu();
+    private void RebuildWindowMenu(NativeMenu windowMenu, List<NativeMenuItemDef> items)
+    {
+        windowMenu.Items.Clear();
+        var fileMenu = new NativeMenuItem("File")
+        {
+            Menu = new NativeMenu(),
+        };
+
         foreach (var item in items)
         {
             if (item.Id == "about")
@@ -178,9 +213,11 @@ public sealed class App : Application
 
             fileMenu.Menu.Items.Add(ToNativeMenuItem(item));
         }
-        appMenu.Items.Add(fileMenu);
 
-        NativeMenu.SetMenu(this, appMenu);
+        if (fileMenu.Menu.Items.Count > 0)
+        {
+            windowMenu.Items.Add(fileMenu);
+        }
     }
 
     private void SetDockBadge(string text)
@@ -204,17 +241,23 @@ public sealed class App : Application
 
     private void ShowSystemNotification(long windowId, NotificationRequest request)
     {
-        if (MacFocus.TryIsFocusLikelyActive() == true)
+        // Run the blocking `defaults read` check off the UI thread so it can never stall
+        // window move/resize (which also run on the UI thread).
+        var server = _server;
+        _ = Task.Run(() =>
         {
-            var warningPayload = JsonSerializer.SerializeToElement(new
+            if (MacFocus.TryIsFocusLikelyActive() == true)
             {
-                title = request.Title,
-                body = request.Body,
-                reason = "focus-active",
-                message = "Focus/Do Not Disturb appears active; macOS may mute or delay the notification banner.",
-            });
-            _server?.PublishFromShell("notification.warning", warningPayload, "window", windowId);
-        }
+                var warningPayload = JsonSerializer.SerializeToElement(
+                    new NotificationWarningPayload(
+                        request.Title,
+                        request.Body,
+                        "focus-active",
+                        "Focus/Do Not Disturb appears active; macOS may mute or delay the notification banner."),
+                    ShellJsonContext.Default.NotificationWarningPayload);
+                server?.PublishFromShell("notification.warning", warningPayload, "window", windowId);
+            }
+        });
 
         MacNotification.TryShow(
             request.Title,
@@ -226,7 +269,9 @@ public sealed class App : Application
                     : request.Topic!;
                 _server?.PublishFromShell(
                     topic,
-                    request.Payload ?? JsonSerializer.SerializeToElement(new { title = request.Title, body = request.Body }),
+                    request.Payload ?? JsonSerializer.SerializeToElement(
+                        new NotificationDefaultPayload(request.Title, request.Body),
+                        ShellJsonContext.Default.NotificationDefaultPayload),
                     "window",
                     windowId);
             });
@@ -423,11 +468,13 @@ public sealed class App : Application
     {
         return CreateActionMenuItem("About Todos", () =>
         {
-            _server?.PublishFromShell("menu.about", JsonSerializer.SerializeToElement(new
-            {
-                title = "About Todos",
-                message = "Todos\nDamascusUI example app",
-            }), "window", FocusedWindowId());
+            _server?.PublishFromShell(
+                "menu.about",
+                JsonSerializer.SerializeToElement(
+                    new AboutEventPayload("About Todos", "Todos\nDamascusUI example app"),
+                    ShellJsonContext.Default.AboutEventPayload),
+                "window",
+                FocusedWindowId());
         });
     }
 
@@ -442,7 +489,9 @@ public sealed class App : Application
 
             _server?.PublishFromShell(
                 $"menu.{id}",
-                JsonSerializer.SerializeToElement(new { id, label }),
+                JsonSerializer.SerializeToElement(
+                    new MenuItemClickedPayload(id, label),
+                    ShellJsonContext.Default.MenuItemClickedPayload),
                 "window",
                 FocusedWindowId());
         });

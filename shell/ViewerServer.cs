@@ -3,20 +3,12 @@ using System.Net;
 using System.Net.WebSockets;
 using System.Text;
 using System.Text.Json;
-using System.Text.Json.Serialization;
-using Avalonia;
-using Avalonia.Controls;
 using Avalonia.Threading;
 
 namespace DamascusUI;
 
 public sealed class ViewerServer : IDisposable
 {
-    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
-    {
-        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
-    };
-
     private readonly HttpListener _listener = new();
     private readonly int _port;
     private readonly Action<long, string, string, bool, bool> _onOpenWindow;
@@ -98,13 +90,13 @@ public sealed class ViewerServer : IDisposable
                 return;
             }
 
-            await RespondJson(ctx, 404, new { error = "not found" });
+            await RespondJson(ctx, 404, "not found");
         }
         catch
         {
             if (ctx.Response.OutputStream.CanWrite)
             {
-                await RespondJson(ctx, 500, new { error = "internal error" });
+                await RespondJson(ctx, 500, "internal error");
             }
         }
     }
@@ -207,7 +199,7 @@ public sealed class ViewerServer : IDisposable
 
     private async Task HandleRegister(ShellConnection connection, JsonElement message)
     {
-        var payload = message.Deserialize<RegisterRequest>(JsonOptions);
+        var payload = message.Deserialize(ShellJsonContext.Default.RegisterRequest);
         if (payload is null)
         {
             await connection.SendAsync(new ErrorEnvelope("invalid_register", "Invalid register payload"));
@@ -221,7 +213,7 @@ public sealed class ViewerServer : IDisposable
 
     private async Task HandleSetTitle(ShellConnection connection, JsonElement message)
     {
-        var payload = message.Deserialize<SetTitleRequest>(JsonOptions);
+        var payload = message.Deserialize(ShellJsonContext.Default.SetTitleRequest);
         if (payload is null)
         {
             await connection.SendAsync(new ErrorEnvelope("invalid_set_title", "Invalid title payload"));
@@ -234,14 +226,14 @@ public sealed class ViewerServer : IDisposable
 
     private async Task HandleSetWindowProps(ShellConnection connection, JsonElement message)
     {
-        var payload = message.Deserialize<SetWindowPropsRequest>(JsonOptions);
+        var payload = message.Deserialize(ShellJsonContext.Default.SetWindowPropsRequest);
         if (payload is null)
         {
             await connection.SendAsync(new ErrorEnvelope("invalid_set_window_props", "Invalid set-window-props payload"));
             return;
         }
 
-        if (payload.Transparent is bool t || payload.Decorations is bool d)
+        if (payload.Transparent is bool || payload.Decorations is bool)
         {
             Dispatcher.UIThread.Post(() => _onSetWindowProps(connection.WindowId, payload.Transparent, payload.Decorations));
         }
@@ -254,7 +246,7 @@ public sealed class ViewerServer : IDisposable
 
     private async Task HandleOpenWindow(ShellConnection connection, JsonElement message)
     {
-        var payload = message.Deserialize<OpenWindowRequest>(JsonOptions);
+        var payload = message.Deserialize(ShellJsonContext.Default.OpenWindowRequest);
         if (payload is null)
         {
             await connection.SendAsync(new ErrorEnvelope("invalid_open_window", "Invalid open window payload"));
@@ -269,7 +261,7 @@ public sealed class ViewerServer : IDisposable
 
     private async Task HandleSetMenu(ShellConnection connection, JsonElement message)
     {
-        var payload = message.Deserialize<SetMenuRequest>(JsonOptions);
+        var payload = message.Deserialize(ShellJsonContext.Default.SetMenuRequest);
         if (payload?.Items is null)
         {
             return;
@@ -281,7 +273,7 @@ public sealed class ViewerServer : IDisposable
 
     private async Task HandleSetDockBadge(JsonElement message)
     {
-        var payload = message.Deserialize<SetDockBadgeRequest>(JsonOptions);
+        var payload = message.Deserialize(ShellJsonContext.Default.SetDockBadgeRequest);
         if (payload is null)
         {
             return;
@@ -293,7 +285,7 @@ public sealed class ViewerServer : IDisposable
 
     private async Task HandleSetDockIcon(JsonElement message)
     {
-        var payload = message.Deserialize<SetDockIconRequest>(JsonOptions);
+        var payload = message.Deserialize(ShellJsonContext.Default.SetDockIconRequest);
         if (payload is null)
         {
             return;
@@ -305,7 +297,7 @@ public sealed class ViewerServer : IDisposable
 
     private async Task HandleShowNotification(ShellConnection connection, JsonElement message)
     {
-        var payload = message.Deserialize<NotificationRequest>(JsonOptions);
+        var payload = message.Deserialize(ShellJsonContext.Default.NotificationRequest);
         if (payload is null)
         {
             await connection.SendAsync(new ErrorEnvelope("invalid_notification", "Invalid notification payload"));
@@ -318,7 +310,7 @@ public sealed class ViewerServer : IDisposable
 
     private async Task HandleSubscribe(ShellConnection connection, JsonElement message)
     {
-        var payload = message.Deserialize<SubscribeRequest>(JsonOptions);
+        var payload = message.Deserialize(ShellJsonContext.Default.SubscribeRequest);
         if (payload is null || string.IsNullOrWhiteSpace(payload.Topic))
         {
             await connection.SendAsync(new ErrorEnvelope("invalid_subscribe", "Invalid subscribe payload"));
@@ -333,7 +325,7 @@ public sealed class ViewerServer : IDisposable
 
     private async Task HandleUnsubscribe(ShellConnection connection, JsonElement message)
     {
-        var payload = message.Deserialize<SubscribeRequest>(JsonOptions);
+        var payload = message.Deserialize(ShellJsonContext.Default.SubscribeRequest);
         if (payload is null || string.IsNullOrWhiteSpace(payload.Topic))
         {
             await connection.SendAsync(new ErrorEnvelope("invalid_unsubscribe", "Invalid unsubscribe payload"));
@@ -347,7 +339,7 @@ public sealed class ViewerServer : IDisposable
 
     private async Task HandlePublish(ShellConnection connection, JsonElement message)
     {
-        var payload = message.Deserialize<PublishRequest>(JsonOptions);
+        var payload = message.Deserialize(ShellJsonContext.Default.PublishRequest);
         if (payload is null || string.IsNullOrWhiteSpace(payload.Topic))
         {
             await connection.SendAsync(new ErrorEnvelope("invalid_publish", "Invalid publish payload"));
@@ -424,11 +416,12 @@ public sealed class ViewerServer : IDisposable
         }
     }
 
-    private static async Task RespondJson(HttpListenerContext ctx, int code, object body)
+    private static async Task RespondJson(HttpListenerContext ctx, int code, string error)
     {
         ctx.Response.StatusCode = code;
         ctx.Response.ContentType = "application/json";
-        var bytes = JsonSerializer.SerializeToUtf8Bytes(body, JsonOptions);
+        var bytes = JsonSerializer.SerializeToUtf8Bytes(
+            new HttpErrorBody(error), ShellJsonContext.Default.HttpErrorBody);
         await ctx.Response.OutputStream.WriteAsync(bytes);
         ctx.Response.Close();
     }
@@ -452,14 +445,26 @@ public sealed class ViewerServer : IDisposable
         public long WindowId { get; set; }
         public HashSet<string> Topics { get; } = [];
 
-        public async Task SendAsync<T>(T payload)
+        // Typed overloads: each resolves to the source-generated JsonTypeInfo — no reflection.
+        public Task SendAsync(AckEnvelope payload) =>
+            SendBytesAsync(JsonSerializer.SerializeToUtf8Bytes(payload, ShellJsonContext.Default.AckEnvelope));
+
+        public Task SendAsync(ErrorEnvelope payload) =>
+            SendBytesAsync(JsonSerializer.SerializeToUtf8Bytes(payload, ShellJsonContext.Default.ErrorEnvelope));
+
+        public Task SendAsync(RegisteredEnvelope payload) =>
+            SendBytesAsync(JsonSerializer.SerializeToUtf8Bytes(payload, ShellJsonContext.Default.RegisteredEnvelope));
+
+        public Task SendAsync(EventEnvelope payload) =>
+            SendBytesAsync(JsonSerializer.SerializeToUtf8Bytes(payload, ShellJsonContext.Default.EventEnvelope));
+
+        private async Task SendBytesAsync(byte[] bytes)
         {
             if (Socket.State != WebSocketState.Open)
             {
                 return;
             }
 
-            var bytes = JsonSerializer.SerializeToUtf8Bytes(payload, JsonOptions);
             await _sendLock.WaitAsync();
             try
             {
@@ -473,63 +478,63 @@ public sealed class ViewerServer : IDisposable
     }
 }
 
-record RegisterRequest([property: JsonPropertyName("windowId")] long WindowId);
+record RegisterRequest([property: System.Text.Json.Serialization.JsonPropertyName("windowId")] long WindowId);
 
-record SetTitleRequest([property: JsonPropertyName("title")] string Title);
+record SetTitleRequest([property: System.Text.Json.Serialization.JsonPropertyName("title")] string Title);
 
-record SetDockBadgeRequest([property: JsonPropertyName("text")] string Text);
+record SetDockBadgeRequest([property: System.Text.Json.Serialization.JsonPropertyName("text")] string Text);
 
-record SetDockIconRequest([property: JsonPropertyName("icon")] string Icon);
+record SetDockIconRequest([property: System.Text.Json.Serialization.JsonPropertyName("icon")] string Icon);
 
-record SetMenuRequest([property: JsonPropertyName("items")] List<NativeMenuItemDef> Items);
+record SetMenuRequest([property: System.Text.Json.Serialization.JsonPropertyName("items")] List<NativeMenuItemDef> Items);
 
-record SubscribeRequest([property: JsonPropertyName("topic")] string Topic);
+record SubscribeRequest([property: System.Text.Json.Serialization.JsonPropertyName("topic")] string Topic);
 
 record PublishRequest(
-    [property: JsonPropertyName("topic")] string Topic,
-    [property: JsonPropertyName("payload")] JsonElement? Payload,
-    [property: JsonPropertyName("scope")] string? Scope,
-    [property: JsonPropertyName("targetWindowId")] long? TargetWindowId
+    [property: System.Text.Json.Serialization.JsonPropertyName("topic")] string Topic,
+    [property: System.Text.Json.Serialization.JsonPropertyName("payload")] JsonElement? Payload,
+    [property: System.Text.Json.Serialization.JsonPropertyName("scope")] string? Scope,
+    [property: System.Text.Json.Serialization.JsonPropertyName("targetWindowId")] long? TargetWindowId
 );
 
 record OpenWindowRequest(
-    [property: JsonPropertyName("title")] string Title,
-    [property: JsonPropertyName("url")] string Url,
-    [property: JsonPropertyName("transparent")] bool Transparent,
-    [property: JsonPropertyName("decorations")] bool Decorations
+    [property: System.Text.Json.Serialization.JsonPropertyName("title")] string Title,
+    [property: System.Text.Json.Serialization.JsonPropertyName("url")] string Url,
+    [property: System.Text.Json.Serialization.JsonPropertyName("transparent")] bool Transparent,
+    [property: System.Text.Json.Serialization.JsonPropertyName("decorations")] bool Decorations
 );
 
 record SetWindowPropsRequest(
-    [property: JsonPropertyName("surfaceId")] uint SurfaceId,
-    [property: JsonPropertyName("transparent")] bool? Transparent,
-    [property: JsonPropertyName("decorations")] bool? Decorations
+    [property: System.Text.Json.Serialization.JsonPropertyName("surfaceId")] uint SurfaceId,
+    [property: System.Text.Json.Serialization.JsonPropertyName("transparent")] bool? Transparent,
+    [property: System.Text.Json.Serialization.JsonPropertyName("decorations")] bool? Decorations
 );
 
-record AckEnvelope([property: JsonPropertyName("action")] string Action)
+record AckEnvelope([property: System.Text.Json.Serialization.JsonPropertyName("action")] string Action)
 {
-    [JsonPropertyName("type")]
+    [System.Text.Json.Serialization.JsonPropertyName("type")]
     public string Type => "ack";
 }
 
-record RegisteredEnvelope([property: JsonPropertyName("windowId")] long WindowId)
+record RegisteredEnvelope([property: System.Text.Json.Serialization.JsonPropertyName("windowId")] long WindowId)
 {
-    [JsonPropertyName("type")]
+    [System.Text.Json.Serialization.JsonPropertyName("type")]
     public string Type => "registered";
 }
 
 record EventEnvelope(
-    [property: JsonPropertyName("topic")] string Topic,
-    [property: JsonPropertyName("payload")] JsonElement? Payload,
-    [property: JsonPropertyName("fromWindowId")] long FromWindowId)
+    [property: System.Text.Json.Serialization.JsonPropertyName("topic")] string Topic,
+    [property: System.Text.Json.Serialization.JsonPropertyName("payload")] JsonElement? Payload,
+    [property: System.Text.Json.Serialization.JsonPropertyName("fromWindowId")] long FromWindowId)
 {
-    [JsonPropertyName("type")]
+    [System.Text.Json.Serialization.JsonPropertyName("type")]
     public string Type => "event";
 }
 
 record ErrorEnvelope(
-    [property: JsonPropertyName("code")] string Code,
-    [property: JsonPropertyName("message")] string Message)
+    [property: System.Text.Json.Serialization.JsonPropertyName("code")] string Code,
+    [property: System.Text.Json.Serialization.JsonPropertyName("message")] string Message)
 {
-    [JsonPropertyName("type")]
+    [System.Text.Json.Serialization.JsonPropertyName("type")]
     public string Type => "error";
 }
