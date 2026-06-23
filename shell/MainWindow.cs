@@ -32,6 +32,7 @@ public sealed class MainWindow : Window
             TransparencyLevelHint = [WindowTransparencyLevel.Transparent];
             Background = Brushes.Transparent;
             TransparencyBackgroundFallback = Brushes.Transparent;
+            Opened += (_, _) => MacWindowHelper.DisableWebViewBackground(this);
         }
 
         var webview = new NativeWebView
