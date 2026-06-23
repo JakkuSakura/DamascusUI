@@ -18,6 +18,7 @@ public sealed class App : Application
     public static string WindowTitle { get; private set; } = "DamascusUI";
     public static bool ConfigTransparent { get; private set; } = false;
     public static bool ConfigDecorations { get; private set; } = true;
+    private const int PreferredViewerPort = 45769;
     private static string LaunchWorkingDirectory { get; } = Environment.CurrentDirectory;
     private Process? _coreProcess;
     private ViewerServer? _server;
@@ -58,12 +59,10 @@ public sealed class App : Application
 
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
-            var mainWindowId = NextWindowId();
-            desktop.MainWindow = CreateWindow(mainWindowId, WindowTitle, FrontendUrl, ConfigTransparent, ConfigDecorations);
             desktop.Startup += (_, _) =>
             {
                 _server = new ViewerServer(
-                    MainWindow.ViewerPort,
+                    PreferredViewerPort,
                     OpenNewWindow,
                     CloseWindow,
                     SetMenuBar,
@@ -74,6 +73,9 @@ public sealed class App : Application
                     ShowSystemNotification,
                     FocusedWindowId);
                 _server.Start();
+
+                var mainWindowId = NextWindowId();
+                desktop.MainWindow = CreateWindow(mainWindowId, WindowTitle, FrontendUrl, ConfigTransparent, ConfigDecorations);
                 _ = RefreshDockIconFromFrontendAsync();
             };
             desktop.Exit += (_, _) =>
@@ -425,7 +427,7 @@ public sealed class App : Application
     private Uri BuildWindowUri(long windowId, string url)
     {
         var builder = new UriBuilder(url);
-        var windowParam = $"shellWindowId={windowId}";
+        var windowParam = $"shellWindowId={windowId}&shellPort={_server!.ActualPort}";
         if (string.IsNullOrEmpty(builder.Query))
         {
             builder.Query = windowParam;

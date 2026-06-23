@@ -10,7 +10,8 @@ namespace DamascusUI;
 public sealed class ViewerServer : IDisposable
 {
     private readonly HttpListener _listener = new();
-    private readonly int _port;
+    private readonly int _preferredPort;
+    public int ActualPort { get; private set; }
     private readonly Action<long, string, string, bool, bool> _onOpenWindow;
     private readonly Action<long> _onCloseWindow;
     private readonly Action<long, List<NativeMenuItemDef>> _onSetMenu;
@@ -24,7 +25,7 @@ public sealed class ViewerServer : IDisposable
     private readonly ConcurrentDictionary<string, ConcurrentDictionary<long, byte>> _topicSubscribers = new();
 
     public ViewerServer(
-        int port,
+        int preferredPort,
         Action<long, string, string, bool, bool> onOpenWindow,
         Action<long> onCloseWindow,
         Action<long, List<NativeMenuItemDef>> onSetMenu,
@@ -35,7 +36,7 @@ public sealed class ViewerServer : IDisposable
         Action<long, NotificationRequest> onShowNotification,
         Func<long> focusedWindowId)
     {
-        _port = port;
+        _preferredPort = preferredPort;
         _onOpenWindow = onOpenWindow;
         _onCloseWindow = onCloseWindow;
         _onSetMenu = onSetMenu;
@@ -45,14 +46,28 @@ public sealed class ViewerServer : IDisposable
         _onSetWindowProps = onSetWindowProps;
         _onShowNotification = onShowNotification;
         _focusedWindowId = focusedWindowId;
-        _listener.Prefixes.Add($"http://127.0.0.1:{port}/");
     }
 
     public void Start()
     {
-        _listener.Start();
-        Console.WriteLine($"[ViewerServer] listening on http://127.0.0.1:{_port}");
-        _ = Task.Run(ListenLoop);
+        for (int port = _preferredPort; port < _preferredPort + 100; port++)
+        {
+            try
+            {
+                _listener.Prefixes.Clear();
+                _listener.Prefixes.Add($"http://127.0.0.1:{port}/");
+                _listener.Start();
+                ActualPort = port;
+                Console.WriteLine($"[ViewerServer] listening on http://127.0.0.1:{port}");
+                _ = Task.Run(ListenLoop);
+                return;
+            }
+            catch (HttpListenerException)
+            {
+            }
+        }
+
+        throw new InvalidOperationException("ViewerServer: no available port");
     }
 
     private async Task ListenLoop()

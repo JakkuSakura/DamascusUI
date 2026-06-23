@@ -1,5 +1,3 @@
-const VIEWER_WS = "ws://127.0.0.1:45769/ws";
-
 type MenuItem = { kind: string; label?: string; id?: string; items?: MenuItem[] };
 type EventHandler = (payload: unknown, fromWindowId: number) => void;
 type PendingMessage = Record<string, unknown>;
@@ -27,13 +25,24 @@ function currentWindowId(): number | null {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
+function shellPort(): number {
+  const params = new URLSearchParams(window.location.search);
+  const raw = params.get("shellPort");
+  if (!raw) return 45769;
+  const p = Number.parseInt(raw, 10);
+  return Number.isFinite(p) ? p : 45769;
+}
+
+const VIEWER_WS_BASE = `ws://127.0.0.1:`;
+
 function connect() {
   if (socket || typeof window === "undefined") {
     return;
   }
 
+  const wsUrl = `${VIEWER_WS_BASE}${shellPort()}/ws`;
   try {
-    socket = new WebSocket(VIEWER_WS);
+    socket = new WebSocket(wsUrl);
   } catch {
     socket = null;
     return;

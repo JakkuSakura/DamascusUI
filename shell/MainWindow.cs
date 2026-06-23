@@ -6,7 +6,6 @@ namespace DamascusUI;
 
 public sealed class MainWindow : Window
 {
-    public const int ViewerPort = 45769;
     private const int ResizeBorder = 4;
     public long WindowId { get; }
 
