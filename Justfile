@@ -6,7 +6,7 @@ default:
 # ── Dev ────────────────────────────────────────────────────────────────────────
 
 dev-fe:
-    cd ui && pnpm dev
+    cd ui && ~/.vite-plus/bin/vp run dev
 
 dev-core *args:
     cargo run -p damascus -- {{args}}
@@ -20,7 +20,7 @@ build-core:
     cargo build -p damascus --no-default-features -F tokio --release
 
 build-fe:
-    cd ui && pnpm build
+    cd ui && ~/.vite-plus/bin/vp run build
 
 build-shell config="shell/damascus.json":
     cp {{config}} shell/damascus.json

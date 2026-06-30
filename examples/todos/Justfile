@@ -6,7 +6,7 @@ default:
 # ── Dev ────────────────────────────────────────────────────────────────────────
 
 dev-fe:
-    cd ui && pnpm dev
+    cd ui && ~/.vite-plus/bin/vp run dev
 
 dev:
     cargo run -p todos
@@ -14,7 +14,7 @@ dev:
 # ── Build (release) ────────────────────────────────────────────────────────────
 
 build:
-    cd ui && pnpm build
+    cd ui && ~/.vite-plus/bin/vp run build
     cargo build -p todos --release
 
 # ── Run (release) ──────────────────────────────────────────────────────────────
