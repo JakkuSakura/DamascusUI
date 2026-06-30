@@ -1,5 +1,5 @@
 import { createSignal, createResource, For, Show, onMount, createEffect, onCleanup } from "solid-js";
-import { setWindowTitle, setMenuBar, openWindow, setDockBadge, publish, showSystemNotification, subscribe } from "../../../../ui/src/bridge";
+import { setWindowTitle, setMenuBar, openWindow, setDockBadge, publish, showSystemNotification, subscribe, closeWindow, minimizeWindow, toggleMaximize } from "../../../../ui/src/bridge";
 
 interface Todo {
   id: number;
@@ -104,7 +104,19 @@ export default function App() {
   return (
     <div class="h-screen flex flex-col p-3 gap-3 select-none window-glass" style="border-radius: 16px; overflow: hidden;">
       {/* Title bar — draggable */}
-      <div class="titlebar glass-sm px-4 py-3 flex items-center shrink-0">
+      <div class="titlebar glass-sm px-4 py-3 flex items-center gap-3 shrink-0">
+        {/* macOS traffic lights */}
+        <div class="flex items-center gap-2 shrink-0">
+          <button onClick={closeWindow}
+            class="w-3 h-3 rounded-full bg-red-500/80 hover:bg-red-500 cursor-pointer transition-colors"
+            title="Close" />
+          <button onClick={minimizeWindow}
+            class="w-3 h-3 rounded-full bg-yellow-500/80 hover:bg-yellow-500 cursor-pointer transition-colors"
+            title="Minimize" />
+          <button onClick={toggleMaximize}
+            class="w-3 h-3 rounded-full bg-green-500/80 hover:bg-green-500 cursor-pointer transition-colors"
+            title="Zoom" />
+        </div>
         <h1 class="text-sm font-semibold tracking-wide text-gray-300 flex-1">Todos</h1>
         <span class="text-xs text-gray-500 tabular-nums">
           {pending().length} remaining

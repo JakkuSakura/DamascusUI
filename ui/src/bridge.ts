@@ -151,6 +151,14 @@ export function closeWindow() {
   send("close-window", {});
 }
 
+export function minimizeWindow() {
+  send("minimize-window", {});
+}
+
+export function toggleMaximize() {
+  send("toggle-maximize", {});
+}
+
 export function setMenuBar(items: MenuItem[]) {
   send("set-menu", { items });
 }

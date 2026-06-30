@@ -14,6 +14,8 @@ public sealed class ViewerServer : IDisposable
     public int ActualPort { get; private set; }
     private readonly Action<long, string, string, bool, bool> _onOpenWindow;
     private readonly Action<long> _onCloseWindow;
+    private readonly Action<long> _onMinimizeWindow;
+    private readonly Action<long> _onToggleMaximize;
     private readonly Action<long, List<NativeMenuItemDef>> _onSetMenu;
     private readonly Action<string> _onSetDockIcon;
     private readonly Action<string> _onSetDockBadge;
@@ -28,6 +30,8 @@ public sealed class ViewerServer : IDisposable
         int preferredPort,
         Action<long, string, string, bool, bool> onOpenWindow,
         Action<long> onCloseWindow,
+        Action<long> onMinimizeWindow,
+        Action<long> onToggleMaximize,
         Action<long, List<NativeMenuItemDef>> onSetMenu,
         Action<string> onSetDockIcon,
         Action<string> onSetDockBadge,
@@ -39,6 +43,8 @@ public sealed class ViewerServer : IDisposable
         _preferredPort = preferredPort;
         _onOpenWindow = onOpenWindow;
         _onCloseWindow = onCloseWindow;
+        _onMinimizeWindow = onMinimizeWindow;
+        _onToggleMaximize = onToggleMaximize;
         _onSetMenu = onSetMenu;
         _onSetDockIcon = onSetDockIcon;
         _onSetDockBadge = onSetDockBadge;
@@ -181,6 +187,12 @@ public sealed class ViewerServer : IDisposable
                 break;
             case "close-window":
                 await HandleCloseWindow(connection);
+                break;
+            case "minimize-window":
+                Dispatcher.UIThread.Post(() => _onMinimizeWindow(connection.WindowId));
+                break;
+            case "toggle-maximize":
+                Dispatcher.UIThread.Post(() => _onToggleMaximize(connection.WindowId));
                 break;
             case "open-window":
                 await HandleOpenWindow(connection, message);

@@ -65,6 +65,8 @@ public sealed class App : Application
                     PreferredViewerPort,
                     OpenNewWindow,
                     CloseWindow,
+                    MinimizeWindow,
+                    ToggleMaximize,
                     SetMenuBar,
                     SetDockIcon,
                     SetDockBadge,
@@ -362,6 +364,30 @@ public sealed class App : Application
             if (_windows.TryGetValue(windowId, out var window))
             {
                 window.Close();
+            }
+        });
+    }
+
+    private void MinimizeWindow(long windowId)
+    {
+        Dispatcher.UIThread.Post(() =>
+        {
+            if (_windows.TryGetValue(windowId, out var window))
+            {
+                window.WindowState = WindowState.Minimized;
+            }
+        });
+    }
+
+    private void ToggleMaximize(long windowId)
+    {
+        Dispatcher.UIThread.Post(() =>
+        {
+            if (_windows.TryGetValue(windowId, out var window))
+            {
+                window.WindowState = window.WindowState == WindowState.Maximized
+                    ? WindowState.Normal
+                    : WindowState.Maximized;
             }
         });
     }
