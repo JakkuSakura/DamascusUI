@@ -67,6 +67,7 @@ public sealed class App : Application
                     CloseWindow,
                     MinimizeWindow,
                     ToggleMaximize,
+                    MoveWindow,
                     SetMenuBar,
                     SetDockIcon,
                     SetDockBadge,
@@ -388,6 +389,20 @@ public sealed class App : Application
                 window.WindowState = window.WindowState == WindowState.Maximized
                     ? WindowState.Normal
                     : WindowState.Maximized;
+            }
+        });
+    }
+
+    private void MoveWindow(long windowId, double dx, double dy)
+    {
+        Dispatcher.UIThread.Post(() =>
+        {
+            if (_windows.TryGetValue(windowId, out var window))
+            {
+                var pos = window.Position;
+                window.Position = new PixelPoint(
+                    (int)(pos.X + dx),
+                    (int)(pos.Y + dy));
             }
         });
     }

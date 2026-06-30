@@ -159,6 +159,14 @@ export function toggleMaximize() {
   send("toggle-maximize", {});
 }
 
+export function startMove() {
+  send("start-move", {});
+}
+
+export function moveWindow(dx: number, dy: number) {
+  send("move-window", { dx, dy });
+}
+
 export function setMenuBar(items: MenuItem[]) {
   send("set-menu", { items });
 }

@@ -10,19 +10,15 @@
 
 html, body, #root {
   background: transparent !important;
-  -webkit-app-region: no-drag;
 }
 
-/* Custom title bar region for window dragging */
+/* Custom title bar */
 .titlebar {
-  -webkit-app-region: drag;
   user-select: none;
 }
 
-.titlebar button,
-.titlebar input,
-.titlebar a {
-  -webkit-app-region: no-drag;
+.titlebar button {
+  pointer-events: auto;
 }
 
 /* Whole-window frosted dark glass */

@@ -16,6 +16,7 @@ public sealed class ViewerServer : IDisposable
     private readonly Action<long> _onCloseWindow;
     private readonly Action<long> _onMinimizeWindow;
     private readonly Action<long> _onToggleMaximize;
+    private readonly Action<long, double, double> _onMoveWindow;
     private readonly Action<long, List<NativeMenuItemDef>> _onSetMenu;
     private readonly Action<string> _onSetDockIcon;
     private readonly Action<string> _onSetDockBadge;
@@ -32,6 +33,7 @@ public sealed class ViewerServer : IDisposable
         Action<long> onCloseWindow,
         Action<long> onMinimizeWindow,
         Action<long> onToggleMaximize,
+        Action<long, double, double> onMoveWindow,
         Action<long, List<NativeMenuItemDef>> onSetMenu,
         Action<string> onSetDockIcon,
         Action<string> onSetDockBadge,
@@ -45,6 +47,7 @@ public sealed class ViewerServer : IDisposable
         _onCloseWindow = onCloseWindow;
         _onMinimizeWindow = onMinimizeWindow;
         _onToggleMaximize = onToggleMaximize;
+        _onMoveWindow = onMoveWindow;
         _onSetMenu = onSetMenu;
         _onSetDockIcon = onSetDockIcon;
         _onSetDockBadge = onSetDockBadge;
@@ -194,6 +197,9 @@ public sealed class ViewerServer : IDisposable
             case "toggle-maximize":
                 Dispatcher.UIThread.Post(() => _onToggleMaximize(connection.WindowId));
                 break;
+            case "move-window":
+                await HandleMoveWindow(connection, message);
+                break;
             case "open-window":
                 await HandleOpenWindow(connection, message);
                 break;
@@ -269,6 +275,16 @@ public sealed class ViewerServer : IDisposable
     private async Task HandleCloseWindow(ShellConnection connection)
     {
         Dispatcher.UIThread.Post(() => _onCloseWindow(connection.WindowId));
+    }
+
+    private async Task HandleMoveWindow(ShellConnection connection, JsonElement message)
+    {
+        if (message.TryGetProperty("dx", out var dxEl) && message.TryGetProperty("dy", out var dyEl))
+        {
+            var dx = dxEl.GetDouble();
+            var dy = dyEl.GetDouble();
+            Dispatcher.UIThread.Post(() => _onMoveWindow(connection.WindowId, dx, dy));
+        }
     }
 
     private async Task HandleOpenWindow(ShellConnection connection, JsonElement message)
@@ -535,6 +551,11 @@ record SetWindowPropsRequest(
     [property: System.Text.Json.Serialization.JsonPropertyName("surfaceId")] uint SurfaceId,
     [property: System.Text.Json.Serialization.JsonPropertyName("transparent")] bool? Transparent,
     [property: System.Text.Json.Serialization.JsonPropertyName("decorations")] bool? Decorations
+);
+
+record MoveWindowRequest(
+    [property: System.Text.Json.Serialization.JsonPropertyName("dx")] double Dx,
+    [property: System.Text.Json.Serialization.JsonPropertyName("dy")] double Dy
 );
 
 record AckEnvelope([property: System.Text.Json.Serialization.JsonPropertyName("action")] string Action)

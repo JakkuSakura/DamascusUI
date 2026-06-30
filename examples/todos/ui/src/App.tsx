@@ -1,5 +1,5 @@
 import { createSignal, createResource, For, Show, onMount, createEffect, onCleanup } from "solid-js";
-import { setWindowTitle, setMenuBar, openWindow, setDockBadge, publish, showSystemNotification, subscribe, closeWindow, minimizeWindow, toggleMaximize } from "../../../../ui/src/bridge";
+import { setWindowTitle, setMenuBar, openWindow, setDockBadge, publish, showSystemNotification, subscribe, closeWindow, minimizeWindow, toggleMaximize, moveWindow } from "../../../../ui/src/bridge";
 
 interface Todo {
   id: number;
@@ -104,7 +104,19 @@ export default function App() {
   return (
     <div class="h-screen flex flex-col p-3 gap-3 select-none window-glass" style="border-radius: 16px; overflow: hidden;">
       {/* Title bar — draggable */}
-      <div class="titlebar glass-sm px-4 py-3 flex items-center gap-3 shrink-0">
+      <div class="titlebar glass-sm px-4 py-3 flex items-center gap-3 shrink-0" onMouseDown={(e) => {
+        const startX = e.clientX;
+        const startY = e.clientY;
+        const onMove = (ev: MouseEvent) => {
+          moveWindow(ev.clientX - startX, ev.clientY - startY);
+        };
+        const onUp = () => {
+          document.removeEventListener("mousemove", onMove);
+          document.removeEventListener("mouseup", onUp);
+        };
+        document.addEventListener("mousemove", onMove);
+        document.addEventListener("mouseup", onUp);
+      }}>
         {/* macOS traffic lights */}
         <div class="flex items-center gap-2 shrink-0">
           <button onClick={closeWindow}
