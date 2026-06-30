@@ -25,9 +25,9 @@ public sealed class App : Application
     private string _lastDockBadge = string.Empty;
     private long _nextWindowId = 1;
     private readonly ConcurrentDictionary<long, Window> _windows = new();
-    private readonly ConcurrentDictionary<long, NativeMenu> _windowMenus = new();
+    private readonly ConcurrentDictionary<long, List<NativeMenuItemDef>> _windowMenuDefinitions = new();
     private long _focusedWindowId;
-    private NativeMenu? _applicationMenu;
+    private string? _activeMenuSignature;
 
     public override void Initialize()
     {
@@ -138,11 +138,20 @@ public sealed class App : Application
             Title = title,
         };
         _windows[windowId] = window;
-        window.Activated += (_, _) => _focusedWindowId = windowId;
+        window.Activated += (_, _) =>
+        {
+            _focusedWindowId = windowId;
+            RefreshApplicationMenuForWindow(windowId);
+        };
         window.Closed += (_, _) =>
         {
             _windows.TryRemove(windowId, out _);
-            _windowMenus.TryRemove(windowId, out _);
+            _windowMenuDefinitions.TryRemove(windowId, out _);
+            if (_focusedWindowId == windowId)
+            {
+                _focusedWindowId = _windows.Keys.OrderBy(id => id).FirstOrDefault();
+                RefreshApplicationMenuForWindow(_focusedWindowId);
+            }
         };
         ApplyDockBadge(window);
         return window;
@@ -164,62 +173,41 @@ public sealed class App : Application
 
     private void SetMenuBar(long windowId, List<NativeMenuItemDef> items)
     {
-        if (_windows.TryGetValue(windowId, out var window) is false)
+        if (_windows.ContainsKey(windowId) is false)
         {
             return;
         }
 
-        if (_applicationMenu is null)
+        _windowMenuDefinitions[windowId] = [.. items];
+        if (_focusedWindowId == 0)
         {
-            _applicationMenu = new NativeMenu();
-            NativeMenu.SetMenu(this, _applicationMenu);
+            _focusedWindowId = windowId;
         }
 
-        RebuildApplicationMenu(_applicationMenu);
-
-        var windowMenu = _windowMenus.GetOrAdd(windowId, _ =>
-        {
-            var menu = new NativeMenu();
-            NativeMenu.SetMenu(window, menu);
-            return menu;
-        });
-
-        RebuildWindowMenu(windowMenu, items);
+        RefreshApplicationMenuForWindow(_focusedWindowId == windowId ? windowId : _focusedWindowId);
     }
 
-    private void RebuildApplicationMenu(NativeMenu appMenu)
+    private void RefreshApplicationMenuForWindow(long windowId)
     {
-        appMenu.Items.Clear();
-        var appRoot = new NativeMenuItem(WindowTitle)
+        var items = _windowMenuDefinitions.TryGetValue(windowId, out var definitions)
+            ? definitions
+            : [];
+        var signature = BuildMenuSignature(items);
+        if (_activeMenuSignature == signature)
         {
-            Menu = new NativeMenu(),
-        };
-        appRoot.Menu.Items.Add(CreateMenuActionItem("About Todos", "about"));
-        appMenu.Items.Add(appRoot);
+            return;
+        }
+
+        if (MacMenuBar.IsSupported)
+        {
+            MacMenuBar.Apply(WindowTitle, items, HandleMenuAction);
+        }
+        _activeMenuSignature = signature;
     }
 
-    private void RebuildWindowMenu(NativeMenu windowMenu, List<NativeMenuItemDef> items)
+    private static string BuildMenuSignature(List<NativeMenuItemDef> items)
     {
-        windowMenu.Items.Clear();
-        var fileMenu = new NativeMenuItem("File")
-        {
-            Menu = new NativeMenu(),
-        };
-
-        foreach (var item in items)
-        {
-            if (item.Id == "about")
-            {
-                continue;
-            }
-
-            fileMenu.Menu.Items.Add(ToNativeMenuItem(item));
-        }
-
-        if (fileMenu.Menu.Items.Count > 0)
-        {
-            windowMenu.Items.Add(fileMenu);
-        }
+        return JsonSerializer.Serialize(items, ShellJsonContext.Default.ListNativeMenuItemDef);
     }
 
     private void SetDockBadge(string text)
@@ -482,21 +470,29 @@ public sealed class App : Application
 
     private NativeMenuItem CreateMenuActionItem(string label, string id)
     {
-        return CreateActionMenuItem(label, () =>
-        {
-            if (id == "new")
-            {
-                SendOpenWindow(FocusedWindowId(), "Todos", FrontendUrl);
-            }
+        return CreateActionMenuItem(label, () => HandleMenuAction(id, label));
+    }
 
-            _server?.PublishFromShell(
-                $"menu.{id}",
-                JsonSerializer.SerializeToElement(
-                    new MenuItemClickedPayload(id, label),
-                    ShellJsonContext.Default.MenuItemClickedPayload),
-                "window",
-                FocusedWindowId());
-        });
+    private void HandleMenuAction(string id)
+    {
+        HandleMenuAction(id, id);
+    }
+
+    private void HandleMenuAction(string id, string fallbackLabel)
+    {
+        var label = FindMenuLabel(_focusedWindowId, id) ?? fallbackLabel;
+        if (id == "new")
+        {
+            SendOpenWindow(FocusedWindowId(), "Todos", FrontendUrl, ConfigTransparent, ConfigDecorations);
+        }
+
+        _server?.PublishFromShell(
+            $"menu.{id}",
+            JsonSerializer.SerializeToElement(
+                new MenuItemClickedPayload(id, label),
+                ShellJsonContext.Default.MenuItemClickedPayload),
+            "window",
+            FocusedWindowId());
     }
 
     private NativeMenuItem ToNativeMenuItem(NativeMenuItemDef def)
@@ -520,5 +516,37 @@ public sealed class App : Application
             item.Menu.Items.Add(ToNativeMenuItem(child));
         }
         return item;
+    }
+
+    private string? FindMenuLabel(long windowId, string id)
+    {
+        if (!_windowMenuDefinitions.TryGetValue(windowId, out var items))
+        {
+            return id == "about" ? "About Todos" : null;
+        }
+
+        return FindMenuLabel(items, id) ?? (id == "about" ? "About Todos" : null);
+    }
+
+    private static string? FindMenuLabel(IEnumerable<NativeMenuItemDef> items, string id)
+    {
+        foreach (var item in items)
+        {
+            if (item.Id == id && !string.IsNullOrWhiteSpace(item.Label))
+            {
+                return item.Label;
+            }
+
+            if (item.Items is not null)
+            {
+                var nested = FindMenuLabel(item.Items, id);
+                if (nested is not null)
+                {
+                    return nested;
+                }
+            }
+        }
+
+        return null;
     }
 }

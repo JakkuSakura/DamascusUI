@@ -15,24 +15,38 @@ public sealed class MainWindow : Window
         Title = App.WindowTitle;
         Width = 1024;
         Height = 768;
+        var useMacFallbackChrome = OperatingSystem.IsMacOS() && !decorations;
 
         if (!decorations)
         {
-            WindowDecorations = Avalonia.Controls.WindowDecorations.None;
+            WindowDecorations = useMacFallbackChrome
+                ? Avalonia.Controls.WindowDecorations.BorderOnly
+                : Avalonia.Controls.WindowDecorations.None;
             ExtendClientAreaToDecorationsHint = true;
             ExtendClientAreaTitleBarHeightHint = 0;
-            // WindowDecorations.None may strip NSResizableWindowMask on macOS.
-            // Restore it via native call once the window handle is available.
             CanResize = true;
-            Opened += (_, _) => MacWindowHelper.RestoreResizeMask(this);
+            if (!useMacFallbackChrome)
+            {
+                // WindowDecorations.None may strip NSResizableWindowMask on macOS.
+                // Restore it via native call once the window handle is available.
+                Opened += (_, _) => MacWindowHelper.RestoreResizeMask(this);
+            }
         }
 
         if (transparent)
         {
-            TransparencyLevelHint = [WindowTransparencyLevel.Transparent];
+            TransparencyLevelHint = OperatingSystem.IsMacOS()
+                ? [WindowTransparencyLevel.Mica, WindowTransparencyLevel.Blur]
+                : [WindowTransparencyLevel.Transparent];
             Background = Brushes.Transparent;
-            TransparencyBackgroundFallback = Brushes.Transparent;
-            Opened += (_, _) => MacWindowHelper.DisableWebViewBackground(this);
+            if (!OperatingSystem.IsMacOS())
+            {
+                TransparencyBackgroundFallback = Brushes.Transparent;
+            }
+            if (!useMacFallbackChrome)
+            {
+                Opened += (_, _) => MacWindowHelper.DisableWebViewBackground(this);
+            }
         }
 
         var webview = new NativeWebView
@@ -46,7 +60,7 @@ public sealed class MainWindow : Window
         Content = new Border
         {
             Child = webview,
-            Margin = decorations ? new Thickness(0) : new Thickness(ResizeBorder),
+            Margin = decorations || useMacFallbackChrome ? new Thickness(0) : new Thickness(ResizeBorder),
             Background = transparent ? Brushes.Transparent : null,
         };
 
