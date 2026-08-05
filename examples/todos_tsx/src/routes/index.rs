@@ -21,7 +21,8 @@ struct Content {
     body: String,
 }
 
-pub async fn index() -> impl IntoResponse {
+// This Rust route is paired automatically with src/routes/index.tsx.
+pub async fn handler() -> impl IntoResponse {
     let todos = vec![
         Todo {
             id: 1,

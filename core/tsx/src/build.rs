@@ -14,15 +14,24 @@ pub enum BuildError {
 
     #[error("frontend command `{command}` failed with status {status}")]
     Command { command: String, status: String },
+
+    #[error("TSX pages were found, but no Rust page handler was found in src/routes")]
+    MissingPageHandler,
 }
 
 /// Build SolidJS source declared in Rust `tsx!` blocks.
 pub fn compile_from(source_path: impl AsRef<Path>) -> Result<(), BuildError> {
     let source_path = source_path.as_ref();
-    let sources = collect_sources(source_path)?;
-    if sources.components.is_empty() && sources.routes.is_empty() {
+    let mut sources = collect_sources(source_path)?;
+    if sources.inline_routes.is_empty() && sources.routes.is_empty() {
         return Err(BuildError::MissingComponent(source_path.to_owned()));
     }
+    sources
+        .routes
+        .sort_by(|left, right| left.relative_path.cmp(&right.relative_path));
+    sources
+        .server_routes
+        .sort_by(|left, right| left.relative_path.cmp(&right.relative_path));
 
     let out_dir =
         PathBuf::from(env::var_os("OUT_DIR").ok_or_else(|| {
@@ -38,22 +47,34 @@ pub fn compile_from(source_path: impl AsRef<Path>) -> Result<(), BuildError> {
     fs::write(project_dir.join("src/index.tsx"), index_tsx(&sources))?;
     fs::write(project_dir.join("src/style.css"), style_css())?;
 
-    if !sources.routes.is_empty() {
-        for route in &sources.routes {
-            let destination = src_dir.join("routes").join(&route.relative_path);
-            if let Some(parent) = destination.parent() {
-                fs::create_dir_all(parent)?;
-            }
-            fs::write(destination, &route.source)?;
+    for route in &sources.routes {
+        let destination = src_dir.join("routes").join(&route.relative_path);
+        if let Some(parent) = destination.parent() {
+            fs::create_dir_all(parent)?;
         }
-    } else {
-        for (index, component) in sources.components.iter().enumerate() {
-            let destination = src_dir
-                .join("inline")
-                .join(format!("component-{index}.tsx"));
-            fs::create_dir_all(destination.parent().unwrap())?;
-            fs::write(destination, component)?;
-        }
+        fs::write(destination, &route.source)?;
+    }
+
+    let paired_paths: std::collections::BTreeSet<_> = sources
+        .routes
+        .iter()
+        .map(|route| route_path(&route.relative_path))
+        .collect();
+    for (index, route) in sources
+        .inline_routes
+        .iter()
+        .filter(|route| !paired_paths.contains(&route_path(&route.relative_path)))
+        .enumerate()
+    {
+        let destination = src_dir
+            .join("inline")
+            .join(format!("component-{index}.tsx"));
+        fs::create_dir_all(destination.parent().unwrap())?;
+        let component = format!(
+            "export default function InlineRoute(props: {{ values: Record<string, unknown> }}) {{\n  return (\n    {}\n  );\n}}\n",
+            inline_component_source(&route.source)
+        );
+        fs::write(destination, component)?;
     }
 
     run(&project_dir, "pnpm", &["install", "--ignore-scripts"])?;
@@ -79,13 +100,18 @@ pub fn compile_from(source_path: impl AsRef<Path>) -> Result<(), BuildError> {
     }
 
     fs::write(out_dir.join("damascus-tsx-index.html"), html)?;
+    fs::write(
+        out_dir.join("damascus-tsx-routes.rs"),
+        server_routes(&sources),
+    )?;
     println!("cargo:rerun-if-changed={}", source_path.display());
     Ok(())
 }
 
 struct Sources {
-    components: Vec<String>,
+    inline_routes: Vec<InlineRoute>,
     routes: Vec<RouteSource>,
+    server_routes: Vec<ServerRoute>,
 }
 
 struct RouteSource {
@@ -93,10 +119,21 @@ struct RouteSource {
     source: String,
 }
 
+struct InlineRoute {
+    relative_path: PathBuf,
+    source: String,
+}
+
+struct ServerRoute {
+    relative_path: PathBuf,
+    source_path: PathBuf,
+}
+
 fn collect_sources(root: &Path) -> Result<Sources, BuildError> {
     let mut sources = Sources {
-        components: Vec::new(),
+        inline_routes: Vec::new(),
         routes: Vec::new(),
+        server_routes: Vec::new(),
     };
     collect_sources_recursive(root, root, &mut sources)?;
     Ok(sources)
@@ -122,7 +159,19 @@ fn collect_sources_recursive(
     match path.extension().and_then(|extension| extension.to_str()) {
         Some("rs") => {
             let source = fs::read_to_string(path)?;
-            sources.components.extend(extract_components(&source));
+            let routes_root = root.join("src/routes");
+            if let Ok(relative_path) = path.strip_prefix(&routes_root) {
+                for component in extract_components(&source) {
+                    sources.inline_routes.push(InlineRoute {
+                        relative_path: relative_path.to_owned(),
+                        source: component,
+                    });
+                }
+                sources.server_routes.push(ServerRoute {
+                    relative_path: relative_path.to_owned(),
+                    source_path: fs::canonicalize(path)?,
+                });
+            }
         }
         Some("tsx") => {
             let routes_root = root.join("src/routes");
@@ -163,12 +212,58 @@ fn extract_components(source: &str) -> Vec<String> {
             break;
         };
         let block = source[open + 1..end].trim().to_owned();
-        if block.contains("export default") {
-            components.push(block);
-        }
+        components.push(block);
         search_from = end + 1;
     }
     components
+}
+
+fn inline_component_source(source: &str) -> String {
+    let mut output = String::new();
+    let mut search_from = 0;
+    let mut binding_index = 0;
+    while let Some(relative) = source[search_from..].find("${") {
+        let dollar = search_from + relative;
+        output.push_str(&source[search_from..dollar]);
+        let open = dollar + 1;
+        let Some(close) = matching_brace(source, open) else {
+            output.push_str(&source[dollar..]);
+            return output;
+        };
+        let name = inline_binding_name(&source[..dollar], binding_index);
+        output.push_str(&format!("{{props.values.{name}}}"));
+        binding_index += 1;
+        search_from = close + 1;
+    }
+    output.push_str(&source[search_from..]);
+    output
+}
+
+fn inline_binding_name(source_before_dollar: &str, index: usize) -> String {
+    let Some(open) = source_before_dollar.rfind('<') else {
+        return format!("value_{index}");
+    };
+    if source_before_dollar[open..].contains('>') {
+        return format!("value_{index}");
+    }
+    let Some(equal_relative) = source_before_dollar[open..].rfind('=') else {
+        return format!("value_{index}");
+    };
+    let equal = open + equal_relative;
+    let before = source_before_dollar[..equal].trim_end();
+    let name: String = before
+        .chars()
+        .rev()
+        .take_while(|character| character.is_ascii_alphanumeric() || *character == '_')
+        .collect::<String>()
+        .chars()
+        .rev()
+        .collect();
+    if name.is_empty() {
+        format!("value_{index}")
+    } else {
+        name
+    }
 }
 
 fn matching_brace(source: &str, open: usize) -> Option<usize> {
@@ -191,27 +286,34 @@ fn matching_brace(source: &str, open: usize) -> Option<usize> {
 fn index_tsx(sources: &Sources) -> String {
     let mut imports = Vec::new();
     let mut routes = Vec::new();
-    if !sources.routes.is_empty() {
-        for (index, route) in sources.routes.iter().enumerate() {
-            let module = route.relative_path.with_extension("");
-            let module = module.to_string_lossy().replace('\\', "/");
-            let module = format!("./routes/{}", module.trim_end_matches('/'));
-            let route_path = route_path(&route.relative_path);
-            imports.push(format!("import Route{index} from \"{module}\";"));
-            routes.push(format!("  \"{route_path}\": Route{index}"));
-        }
-    } else {
-        for index in 0..sources.components.len() {
-            imports.push(format!(
-                "import Route{index} from \"./inline/component-{index}\";"
-            ));
-            let route_path = if index == 0 {
-                "/".to_owned()
-            } else {
-                format!("/component-{index}")
-            };
-            routes.push(format!("  \"{route_path}\": Route{index}"));
-        }
+    for (index, route) in sources.routes.iter().enumerate() {
+        let module = route.relative_path.with_extension("");
+        let module = module.to_string_lossy().replace('\\', "/");
+        let module = format!("./routes/{}", module.trim_end_matches('/'));
+        let route_path = route_path(&route.relative_path);
+        imports.push(format!("import Route{index} from \"{module}\";"));
+        routes.push(format!("  \"{route_path}\": Route{index}"));
+    }
+
+    let paired_paths: std::collections::BTreeSet<_> = sources
+        .routes
+        .iter()
+        .map(|route| route_path(&route.relative_path))
+        .collect();
+    for (index, route) in sources
+        .inline_routes
+        .iter()
+        .filter(|route| !paired_paths.contains(&route_path(&route.relative_path)))
+        .enumerate()
+    {
+        let import_index = sources.routes.len() + index;
+        imports.push(format!(
+            "import Route{import_index} from \"./inline/component-{index}\";"
+        ));
+        routes.push(format!(
+            "  \"{}\": Route{import_index}",
+            route_path(&route.relative_path)
+        ));
     }
 
     format!(
@@ -223,7 +325,8 @@ const bootstrap = JSON.parse(document.getElementById("damascus-data")?.textConte
 const routes = {{
 {}
 }};
-const Component = routes[window.location.pathname] ?? routes["/"];
+const Component = routes[window.location.pathname];
+if (!Component) throw new Error(`No TSX route for ${{window.location.pathname}}`);
 render(() => (
   <Component
     values={{bootstrap.values ?? {{}}}}
@@ -249,6 +352,72 @@ fn route_path(path: &Path) -> String {
     } else {
         format!("/{}", text.trim_start_matches('/'))
     }
+}
+
+fn server_routes(sources: &Sources) -> String {
+    let mut output = String::from("use ::damascus::prelude::*;\n\n");
+    for route in &sources.server_routes {
+        let module = route_module(&route.relative_path);
+        let path = rust_string(&route.source_path);
+        output.push_str(&format!("#[path = {path}] mod {module};\n"));
+    }
+    let page_handler = sources
+        .server_routes
+        .iter()
+        .find(|route| route_path(&route.relative_path) == "/")
+        .map(|route| route_module(&route.relative_path));
+    if !sources.routes.is_empty() && page_handler.is_none() {
+        panic!("{}", BuildError::MissingPageHandler);
+    }
+
+    output.push_str(
+        "\npub fn damascus_tsx_routes() -> ::damascus::axum::Router {\n    Router::new()\n",
+    );
+    for route in &sources.routes {
+        output.push_str(&format!(
+            "        .route(\"{}\", get({}::handler))\n",
+            route_path(&route.relative_path),
+            page_handler.as_deref().unwrap()
+        ));
+    }
+    for route in &sources.server_routes {
+        if route_path(&route.relative_path) == "/" && !sources.routes.is_empty() {
+            continue;
+        }
+        output.push_str(&format!(
+            "        .route(\"{}\", get({}::handler))\n",
+            route_path(&route.relative_path),
+            route_module(&route.relative_path)
+        ));
+    }
+    output.push_str("}\n");
+    output
+}
+
+fn route_module(path: &Path) -> String {
+    let mut name = String::from("__damascus_route_");
+    for character in path.to_string_lossy().chars() {
+        if character.is_ascii_alphanumeric() {
+            name.push(character);
+        } else {
+            name.push('_');
+        }
+    }
+    name
+}
+
+fn rust_string(value: &Path) -> String {
+    let mut output = String::from("\"");
+    for character in value.to_string_lossy().chars() {
+        match character {
+            '\\' => output.push_str("\\\\"),
+            '"' => output.push_str("\\\""),
+            '\n' => output.push_str("\\n"),
+            character => output.push(character),
+        }
+    }
+    output.push('"');
+    output
 }
 
 fn package_json() -> &'static str {

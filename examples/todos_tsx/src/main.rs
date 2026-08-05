@@ -1,4 +1,4 @@
-mod routes;
+include!(concat!(env!("OUT_DIR"), "/damascus-tsx-routes.rs"));
 
 use damascus::{App, Config};
 
@@ -7,7 +7,7 @@ fn main() {
 
     let app = App::builder()
         .config(Config::new().port(3002).app_name("Todos TSX"))
-        .merge(routes::router())
+        .merge(damascus_tsx_routes())
         .build();
     app.run().expect("todos-tsx server failed");
 }

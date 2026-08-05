@@ -19,7 +19,7 @@ closure and is serialized or registered automatically by the macro.
 use damascus::prelude::*;
 use damascus_tsx::tsx;
 
-pub async fn index() -> impl IntoResponse {
+pub async fn handler() -> impl IntoResponse {
     tsx! {
         <App
             todos=${load_todos()}
@@ -38,6 +38,31 @@ let __todos = serde_json::to_value(&state.todos)?;
 let __title = serde_json::to_value(&state.title)?;
 let __metrics = serde_json::to_value(&state.metrics)?;
 ```
+
+Pages are declared by matching files under `src/routes/`. The Rust file owns
+the page response and Rust data; the TSX file owns the rendered page:
+
+```text
+src/routes/index.rs   -> /
+src/routes/index.tsx  -> /
+src/routes/about.tsx  -> /about
+src/routes/api/health.rs -> /api/health (standalone Rust route)
+src/routes/rust_page.rs -> /rust_page (standalone Rust UI route)
+```
+
+There is no `routes/mod.rs`, `page.rs`, or manual route registration. The
+build script walks the route tree and generates the router included by
+`src/main.rs`.
+
+Rust route files do not require a matching TSX file. For example,
+`src/routes/api/health.rs` is registered directly as `GET /api/health` and
+returns JSON from Rust.
+
+Rust can also serve a page directly with an inline TSX fragment. The
+`src/routes/rust_page.rs` example uses `tsx! { ... }` and is compiled into an
+inline Solid component; it has no matching `rust_page.tsx` file. Its `${...}`
+bindings are serialized into the page bootstrap and read by the generated
+component as `props.values.*`.
 
 The generated page bootstraps SolidJS with JSON data and renders the component
 from the embedded TypeScript/SolidJS frontend:

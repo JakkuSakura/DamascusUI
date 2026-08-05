@@ -107,9 +107,16 @@ fn is_dollar(token: &TokenTree) -> bool {
 }
 
 fn binding_name(source: &str, index: usize) -> String {
-    let Some(equal) = source.rfind('=') else {
+    let Some(open) = source.rfind('<') else {
         return format!("value_{index}");
     };
+    if source[open..].contains('>') {
+        return format!("value_{index}");
+    }
+    let Some(equal_relative) = source[open..].rfind('=') else {
+        return format!("value_{index}");
+    };
+    let equal = open + equal_relative;
     let before = source[..equal].trim_end();
     let name: String = before
         .chars()

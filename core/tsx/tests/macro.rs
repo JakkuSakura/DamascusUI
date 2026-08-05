@@ -32,3 +32,19 @@ fn expands_tsx_values_and_callbacks() -> Result<(), Box<dyn std::error::Error>> 
     assert_eq!(page.callback_names().collect::<Vec<_>>(), ["on_click"]);
     Ok(())
 }
+
+#[test]
+fn names_text_values_after_attributes_without_collisions() -> Result<(), Box<dyn std::error::Error>>
+{
+    let page: TsxPage = tsx! {
+        <main class="page">
+            <h1>${"Title"}</h1>
+            <p>${"Message"}</p>
+        </main>
+    }
+    .unwrap();
+
+    assert_eq!(page.values()["value_0"], "Title");
+    assert_eq!(page.values()["value_1"], "Message");
+    Ok(())
+}
