@@ -1,0 +1,19 @@
+[package]
+name = "todos-tsx"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[[bin]]
+name = "todos-tsx"
+path = "src/main.rs"
+
+[dependencies]
+damascus = { path = "../../core", default-features = false, features = ["tokio"] }
+damascus-tsx = { path = "../../core/tsx" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1.52", features = ["macros", "rt-multi-thread", "net"] }
+
+[build-dependencies]
+damascus-tsx = { path = "../../core/tsx" }

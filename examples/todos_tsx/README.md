@@ -1,24 +1,32 @@
 # Todos TSX
 
-This example defines the intended `tsx!` API for a SolidJS + TypeScript frontend.
+This example defines the `tsx!` API for a SolidJS + TypeScript frontend.
 The macro accepts TSX tokens directly. Application code supplies Rust values as
 props; `tsx!` performs the `serde_json` conversion automatically.
+
+The frontend has no separate source project. `build.rs` walks the example
+source tree, discovers Rust route `tsx!` blocks and `src/routes/**/*.tsx` modules,
+creates its temporary SolidJS/Vite build workspace under Cargo `OUT_DIR`,
+compiles it, and embeds the final HTML into the Rust binary.
+
+`AppBuilder` mounts the TSX callback router automatically. Applications only
+declare the page route; they do not write callback handlers or callback routes.
 
 `{...}` remains a SolidJS expression. `${...}` interpolates a Rust value or
 closure and is serialized or registered automatically by the macro.
 
 ```rust
-use axum::extract::State;
 use damascus::prelude::*;
+use damascus_tsx::tsx;
 
-async fn index(State(state): State<AppState>) -> Result<impl IntoResponse, AppError> {
-    Ok(tsx! {
+pub async fn index() -> impl IntoResponse {
+    tsx! {
         <App
-            todos=${state.todos}
-            title=${state.title}
-            metrics=${state.metrics}
+            todos=${load_todos()}
+            title=${"Todos from Rust"}
+            metrics=${load_metrics()}
         />
-    }?)
+    }
 }
 ```
 
@@ -111,5 +119,10 @@ button click
   -> SolidJS signal update
 ```
 
-This directory is a syntax and framework contract until `tsx!` is implemented
-in the core macros crate.
+Run the page with:
+
+```bash
+cargo run -p todos-tsx
+```
+
+It serves the page at `http://127.0.0.1:3002`.

@@ -51,6 +51,12 @@ impl AppBuilder {
         self
     }
 
+    /// Merge a router assembled by a feature or application module.
+    pub fn merge(mut self, router: Router) -> Self {
+        self.router = self.router.merge(router);
+        self
+    }
+
     /// Add a tower [`Layer`] to all routes. Use this for middleware
     /// like [`Extension`] state, CORS, tracing, etc.
     ///
@@ -81,7 +87,7 @@ impl AppBuilder {
     /// Finalize and return the [`App`].
     pub fn build(self) -> App {
         App {
-            router: self.router,
+            router: self.router.merge(damascus_tsx::router()),
             config: self.config,
         }
     }

@@ -375,6 +375,7 @@ dependencies = [
  "compio-net",
  "compio-runtime",
  "cyper-axum",
+ "damascus-tsx",
  "serde",
  "serde_json",
  "thiserror",
@@ -383,6 +384,25 @@ dependencies = [
  "tower-http",
  "tracing",
  "tracing-subscriber",
+]
+
+[[package]]
+name = "damascus-tsx"
+version = "0.1.0"
+dependencies = [
+ "axum",
+ "damascus-tsx-proc",
+ "serde",
+ "serde_json",
+ "thiserror",
+]
+
+[[package]]
+name = "damascus-tsx-proc"
+version = "0.1.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
 ]
 
 [[package]]
@@ -1247,6 +1267,17 @@ dependencies = [
  "rust-embed",
  "serde",
  "serde_json",
+]
+
+[[package]]
+name = "todos-tsx"
+version = "0.1.0"
+dependencies = [
+ "damascus",
+ "damascus-tsx",
+ "serde",
+ "serde_json",
+ "tokio",
 ]
 
 [[package]]

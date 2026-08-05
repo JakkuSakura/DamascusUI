@@ -1,3 +1,9 @@
 [workspace]
-members = ["core", "examples/todos"]
+members = [
+    "core",
+    "core/tsx",
+    "core/tsx/proc",
+    "examples/todos",
+    "examples/todos_tsx",
+]
 resolver = "2"
