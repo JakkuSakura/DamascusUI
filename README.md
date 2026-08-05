@@ -22,14 +22,13 @@ Rust Backend (compio or tokio)
 
 ```
 DamascusUI/
-├── core/          # Rust core framework (compio or tokio runtime)
-├── ui/          # SolidJS web frontend (primary UI)
-├── shell/      # Avalonia desktop viewer (WebView shell)
-├── wit/         # WIT protocol definitions (types, render, input, lifecycle)
-├── examples/    # Example applications
-│   └── todos/   # Full-stack todo app (Rust API + SolidJS + TailwindCSS)
-├── scripui/     # Build and codegen scripts
-└── docs/        # Architecture and design docs
+├── core/          # Rust framework and damascus CLI
+├── ui/            # SolidJS web frontend
+├── shell/         # Avalonia desktop viewer (WebView shell)
+├── wit/           # WIT protocol definitions
+├── examples/      # Example applications
+│   └── todos/     # Full-stack todo app
+└── docs/          # Architecture and design docs
 ```
 
 ## Quick Start
@@ -38,16 +37,16 @@ DamascusUI/
 
 ```bash
 # compio runtime (default)
-cargo run -p damascus-core
+cargo run -p damascus
 
 # tokio runtime
-cargo run -p damascus-core --no-default-features -F tokio
+cargo run -p damascus --no-default-features -F tokio
 ```
 
 ### SolidJS UI (primary UI)
 
 ```bash
-cd ts
+cd ui
 pnpm install
 pnpm dev        # → http://127.0.0.1:3000
 ```
@@ -55,8 +54,8 @@ pnpm dev        # → http://127.0.0.1:3000
 ### Avalonia desktop viewer
 
 ```bash
-cd csharp
-dotnet run      # loads the SolidJS app in a native window
+cd shell
+dotnet run -- --url http://127.0.0.1:3000
 ```
 
 ### Example: Todos app

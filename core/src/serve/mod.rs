@@ -35,13 +35,14 @@ async fn bind_with_fallback(config: &Config) -> Result<(tokio::net::TcpListener,
     })
 }
 
-#[cfg(feature = "compio")]
+// Prefer Tokio when both runtime features are unified by a workspace build.
+#[cfg(all(feature = "compio", not(feature = "tokio")))]
 pub fn serve(router: Router, config: &Config) -> Result<()> {
     compio_runtime::Runtime::new()?.block_on(async {
         let listener = compio_net::TcpListener::bind(config.addr()).await?;
         tracing::info!("DamascusUI (compio) listening on http://{}", config.addr());
-        cyper_axum::serve(listener, router).await.map_err(|e| {
-            crate::error::Error::Internal(e.to_string())
-        })
+        cyper_axum::serve(listener, router)
+            .await
+            .map_err(|e| crate::error::Error::Internal(e.to_string()))
     })
 }

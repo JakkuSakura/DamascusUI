@@ -12,7 +12,11 @@ pub async fn create(
 ) -> impl IntoResponse {
     let mut todos = db.lock().unwrap();
     let id = todos.last().map(|t| t.id + 1).unwrap_or(1);
-    let todo = Todo { id, title: input.title, done: false };
+    let todo = Todo {
+        id,
+        title: input.title,
+        done: false,
+    };
     todos.push(todo.clone());
     (StatusCode::CREATED, Json(todo))
 }
@@ -35,10 +39,7 @@ pub async fn update(
     Ok(Json(todo.clone()))
 }
 
-pub async fn delete(
-    Extension(db): Extension<Db>,
-    Path(id): Path<usize>,
-) -> impl IntoResponse {
+pub async fn delete(Extension(db): Extension<Db>, Path(id): Path<usize>) -> impl IntoResponse {
     let mut todos = db.lock().unwrap();
     if todos.iter().any(|t| t.id == id) {
         todos.retain(|t| t.id != id);

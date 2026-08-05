@@ -9,8 +9,10 @@ fn main() {
             .current_dir(&ui_dir)
             .status();
 
-        if let Ok(s) = &status {
-            if !s.success() { return; }
+        if let Ok(s) = &status
+            && !s.success()
+        {
+            return;
         }
 
         let status = Command::new("pnpm")
@@ -18,10 +20,10 @@ fn main() {
             .current_dir(&ui_dir)
             .status();
 
-        if let Ok(s) = &status {
-            if s.success() {
-                println!("cargo:warning=todos frontend built successfully");
-            }
+        if let Ok(s) = &status
+            && s.success()
+        {
+            println!("cargo:warning=todos frontend built successfully");
         }
     }
 

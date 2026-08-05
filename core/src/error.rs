@@ -4,7 +4,10 @@ pub enum Error {
     Io(#[from] std::io::Error),
 
     #[error("server bind failed on {addr}: {source}")]
-    Bind { addr: String, source: std::io::Error },
+    Bind {
+        addr: String,
+        source: std::io::Error,
+    },
 
     #[error("protocol error: {0}")]
     Protocol(String),

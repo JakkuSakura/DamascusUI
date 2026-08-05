@@ -2,8 +2,8 @@
 ///
 /// Running `scripts/codegen` reads this file and produces:
 ///   rs/src/gen/todos.rs    — handler trait + types
-///   ts/src/gen/todos.ts    — typed fetch client
-///   csharp/gen/Todos.cs    — typed HttpClient
+///   ui/src/codegen/todos.ts    — typed fetch client
+///   shell/codegen/Todos.cs     — typed HttpClient
 
 interface todos {
     /// A single todo item.

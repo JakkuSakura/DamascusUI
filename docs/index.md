@@ -18,7 +18,7 @@
 ┌────────────────────┼─────────────────────────────────────────┐
 │             Rust Backend                                     │
 │  ┌─────────────────┴──────────────────────────────────────┐  │
-│  │  damascus-core                                         │  │
+│  │  damascus                                              │  │
 │  │  App · Config · protocol types                         │  │
 │  │  compio / tokio · cyper-axum / axum                    │  │
 │  └────────────────────────────────────────────────────────┘  │
@@ -34,11 +34,7 @@ WIT files define the canonical schema; Rust/TS/C# mirrors are kept in sync:
 |-------------|---------------------|-------------------------------------------|
 | `types.wit`  | shared               | Point, Size, Rect, Color, SurfaceId       |
 | `window.wit` | backend↔frontend     | Open, close, resize, properties, DPI      |
-| `render.wit` | backend → frontend   | Frame delivery with damage tracking       |
-| `input.wit`  | frontend → backend   | Mouse, keyboard, touch, clipboard, drag   |
-| `menu.wit`   | backend → frontend   | Menu bar, context menu descriptions       |
-| `dialog.wit` | backend↔frontend     | File open/save, message boxes             |
-| `tray.wit`   | backend↔frontend     | System tray icon, notifications           |
+| `viewer.wit` | backend → viewer     | Native window and viewer commands         |
 | `world.wit`  | —                    | Ties all interfaces into one world        |
 
 ### Message format
@@ -62,8 +58,8 @@ Default is `compio`. Switch with `--no-default-features -F tokio`.
 ## Using the framework
 
 ```rust
-use damascus_core::prelude::*;
-use damascus_core::{App, Config};
+use damascus::prelude::*;
+use damascus::{App, Config};
 
 fn main() {
     let app = App::builder()

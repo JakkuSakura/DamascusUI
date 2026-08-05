@@ -26,10 +26,10 @@ cd examples/todos && cargo check -p todos
 cargo run -- codegen examples/todos/wit/todos.wit
 
 # TS frontend
-cd ts && pnpm install && pnpm dev
+cd ui && pnpm install && pnpm dev
 
 # C# desktop viewer
-cd csharp && dotnet build
+cd shell && dotnet build
 ```
 
 ## Conventions

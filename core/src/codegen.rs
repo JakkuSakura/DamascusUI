@@ -70,16 +70,14 @@ fn camel(s: &str) -> String {
 }
 
 fn wit_to_rust(t: &str) -> String {
-    t.replace("u32", "u32")
-        .replace("string", "String")
-        .replace("bool", "bool")
-        .replace("f32", "f32")
-        .replace("unit", "()")
+    t.replace("string", "String").replace("unit", "()")
 }
 
 fn wrap_rust_type(t: &str) -> String {
     let base = wit_to_rust(t);
-    if base.contains('<') { return base; }
+    if base.contains('<') {
+        return base;
+    }
     if base == "u32" || base == "String" || base == "bool" || base == "f32" || base == "()" {
         return base;
     }
@@ -103,7 +101,6 @@ fn wit_to_ts(t: &str) -> String {
         format!("{}[]", wit_to_ts(inner))
     } else {
         t.replace("u32", "number")
-            .replace("string", "string")
             .replace("bool", "boolean")
             .replace("f32", "number")
             .replace("unit", "void")
@@ -112,7 +109,13 @@ fn wit_to_ts(t: &str) -> String {
 
 fn wrap_ts_type(t: &str) -> String {
     let base = wit_to_ts(t);
-    if base == "number" || base == "string" || base == "boolean" || base == "void" || base.contains("null") || base.contains("[]") {
+    if base == "number"
+        || base == "string"
+        || base == "boolean"
+        || base == "void"
+        || base.contains("null")
+        || base.contains("[]")
+    {
         return base;
     }
     pascal(t)
@@ -125,8 +128,6 @@ fn wit_to_cs(t: &str) -> String {
         format!("{}[]", wit_to_cs(inner))
     } else {
         t.replace("u32", "uint")
-            .replace("string", "string")
-            .replace("bool", "bool")
             .replace("f32", "float")
             .replace("unit", "void")
     }
@@ -134,7 +135,14 @@ fn wit_to_cs(t: &str) -> String {
 
 fn wrap_cs_type(t: &str) -> String {
     let base = wit_to_cs(t);
-    if base == "uint" || base == "string" || base == "bool" || base == "float" || base == "void" || base.contains('?') || base.contains("[]") {
+    if base == "uint"
+        || base == "string"
+        || base == "bool"
+        || base == "float"
+        || base == "void"
+        || base.contains('?')
+        || base.contains("[]")
+    {
         return base;
     }
     pascal(t)
@@ -149,10 +157,18 @@ fn parse_records(src: &str) -> Vec<Record> {
 
     for line in src.lines() {
         let line = line.split("//").next().unwrap_or("").trim();
-        if line.is_empty() { continue; }
+        if line.is_empty() {
+            continue;
+        }
 
-        if let Some(rm) = line.strip_prefix("record ").and_then(|s| s.strip_suffix('{')) {
-            current = Some(Record { name: rm.trim().to_string(), fields: Vec::new() });
+        if let Some(rm) = line
+            .strip_prefix("record ")
+            .and_then(|s| s.strip_suffix('{'))
+        {
+            current = Some(Record {
+                name: rm.trim().to_string(),
+                fields: Vec::new(),
+            });
             depth = 1;
             continue;
         }
@@ -167,7 +183,10 @@ fn parse_records(src: &str) -> Vec<Record> {
             }
             if let Some((name, typ)) = line.split_once(':') {
                 let typ = typ.trim().trim_end_matches(',');
-                rec.fields.push(Field { name: name.trim().to_string(), wit_type: typ.to_string() });
+                rec.fields.push(Field {
+                    name: name.trim().to_string(),
+                    wit_type: typ.to_string(),
+                });
             }
         }
     }
@@ -179,13 +198,19 @@ fn parse_endpoints(src: &str) -> Vec<Endpoint> {
 
     for line in src.lines() {
         let line = line.split("//").next().unwrap_or("").trim();
-        if line.is_empty() || line.starts_with("record ") || line.starts_with("interface ") { continue; }
+        if line.is_empty() || line.starts_with("record ") || line.starts_with("interface ") {
+            continue;
+        }
 
         // get|post|put|delete name(args): returnType
         let parts: Vec<&str> = line.splitn(2, ' ').collect();
-        if parts.len() < 2 { continue; }
+        if parts.len() < 2 {
+            continue;
+        }
         let method = parts[0];
-        if !["get","post","put","delete"].contains(&method) { continue; }
+        if !["get", "post", "put", "delete"].contains(&method) {
+            continue;
+        }
 
         let rest = parts[1];
         let paren_pos = rest.find('(');
@@ -208,28 +233,49 @@ fn parse_endpoints(src: &str) -> Vec<Endpoint> {
         };
 
         let args = parse_arg_list(args_str);
-        eps.push(Endpoint { method: method.to_string(), name: name.to_string(), args, returns });
+        eps.push(Endpoint {
+            method: method.to_string(),
+            name: name.to_string(),
+            args,
+            returns,
+        });
     }
     eps
 }
 
 fn parse_arg_list(raw: &str) -> Vec<Arg> {
-    if raw.is_empty() { return vec![]; }
+    if raw.is_empty() {
+        return vec![];
+    }
     let mut args = Vec::new();
     let mut depth = 0;
     let mut buf = String::new();
 
     for ch in raw.chars().chain(std::iter::once(',')) {
         match ch {
-            '<' => { depth += 1; buf.push(ch); }
-            '>' => { depth -= 1; buf.push(ch); }
+            '<' => {
+                depth += 1;
+                buf.push(ch);
+            }
+            '>' => {
+                depth -= 1;
+                buf.push(ch);
+            }
             ',' if depth == 0 => {
                 let a = buf.trim().to_string();
                 if !a.is_empty() {
                     if let Some((n, t)) = a.split_once(':') {
-                        args.push(Arg { kind: ArgKind::Path, name: n.trim().to_string(), wit_type: t.trim().to_string() });
+                        args.push(Arg {
+                            kind: ArgKind::Path,
+                            name: n.trim().to_string(),
+                            wit_type: t.trim().to_string(),
+                        });
                     } else {
-                        args.push(Arg { kind: ArgKind::Body, name: "body".into(), wit_type: a.trim().to_string() });
+                        args.push(Arg {
+                            kind: ArgKind::Body,
+                            name: "body".into(),
+                            wit_type: a.trim().to_string(),
+                        });
                     }
                 }
                 buf.clear();
@@ -243,36 +289,69 @@ fn parse_arg_list(raw: &str) -> Vec<Arg> {
 // ── generators ────────────────────────────────────────────
 
 fn gen_rust(name: &str, records: &[Record], endpoints: &[Endpoint]) -> String {
-    let mut out = format!("// Generated by `damascus codegen` from {name}.wit — do not edit.\n\nuse serde::{{Deserialize, Serialize}};\n\n");
+    let mut out = format!(
+        "// Generated by `damascus codegen` from {name}.wit — do not edit.\n\nuse serde::{{Deserialize, Serialize}};\n\n"
+    );
 
     // structs
     for r in records {
-        out += &format!("#[derive(Debug, Clone, Serialize, Deserialize)]\npub struct {} {{\n", pascal(&r.name));
+        out += &format!(
+            "#[derive(Debug, Clone, Serialize, Deserialize)]\npub struct {} {{\n",
+            pascal(&r.name)
+        );
         for f in &r.fields {
             let rt = wrap_opt_rs(&f.wit_type);
-            let sn = if f.name.contains('-') { format!("#[serde(rename = \"{}\")]\n    ", f.name) } else { String::new() };
+            let sn = if f.name.contains('-') {
+                format!("#[serde(rename = \"{}\")]\n    ", f.name)
+            } else {
+                String::new()
+            };
             out += &format!("    {}pub {}: {},\n", sn, camel(&f.name), rt);
         }
         out += "}\n\n";
     }
 
     // trait
-    out += &format!("#[axum::async_trait]\npub trait {}Api: Clone + Send + Sync + 'static {{\n", pascal(name));
+    out += &format!(
+        "#[axum::async_trait]\npub trait {}Api: Clone + Send + Sync + 'static {{\n",
+        pascal(name)
+    );
     for ep in endpoints {
-        let params = ep.args.iter().map(|a| {
-            if a.kind == ArgKind::Path {
-                format!("{}: {}", camel(&a.name), wrap_opt_rs(&a.wit_type))
+        let params = ep
+            .args
+            .iter()
+            .map(|a| {
+                if a.kind == ArgKind::Path {
+                    format!("{}: {}", camel(&a.name), wrap_opt_rs(&a.wit_type))
+                } else {
+                    format!("body: {}", wrap_opt_rs(&a.wit_type))
+                }
+            })
+            .collect::<Vec<_>>()
+            .join(", ");
+        let ret = if ep.returns == "unit" {
+            String::new()
+        } else {
+            format!(" -> {}", wrap_opt_rs(&ep.returns))
+        };
+        out += &format!(
+            "    async fn {}(&self{}){};\n",
+            camel(&ep.name),
+            if params.is_empty() {
+                String::new()
             } else {
-                format!("body: {}", wrap_opt_rs(&a.wit_type))
-            }
-        }).collect::<Vec<_>>().join(", ");
-        let ret = if ep.returns == "unit" { String::new() } else { format!(" -> {}", wrap_opt_rs(&ep.returns)) };
-        out += &format!("    async fn {}(&self{}){};\n", camel(&ep.name), if params.is_empty() { String::new() } else { format!(", {params}") }, ret);
+                format!(", {params}")
+            },
+            ret
+        );
     }
     out += "}\n\n";
 
     // router
-    out += &format!("pub fn router<A: {}Api>(api: A) -> axum::Router {{\n", pascal(name));
+    out += &format!(
+        "pub fn router<A: {}Api>(api: A) -> axum::Router {{\n",
+        pascal(name)
+    );
     out += "    use std::sync::Arc;\n";
     out += "    use axum::{Router, Extension, Json, extract::Path, routing::{get, post, put, delete}};\n";
     out += "    use axum::response::IntoResponse;\n";
@@ -281,12 +360,21 @@ fn gen_rust(name: &str, records: &[Record], endpoints: &[Endpoint]) -> String {
 
     for ep in endpoints {
         let path = if ep.args.iter().any(|a| a.kind == ArgKind::Path) {
-            let segments: Vec<String> = ep.args.iter().filter(|a| a.kind == ArgKind::Path).map(|a| format!("{{{}}}", camel(&a.name))).collect();
+            let segments: Vec<String> = ep
+                .args
+                .iter()
+                .filter(|a| a.kind == ArgKind::Path)
+                .map(|a| format!("{{{}}}", camel(&a.name)))
+                .collect();
             format!("\"/api/{}/{}\"", name, segments.join("/"))
         } else {
             format!("\"/api/{}\"", name)
         };
-        out += &format!("        .route({path}, {}(__h_{}))\n", ep.method, ep.name.replace('-', "_"));
+        out += &format!(
+            "        .route({path}, {}(__h_{}))\n",
+            ep.method,
+            ep.name.replace('-', "_")
+        );
     }
     out += "        .layer(Extension(api))\n}\n\n";
 
@@ -296,22 +384,45 @@ fn gen_rust(name: &str, records: &[Record], endpoints: &[Endpoint]) -> String {
         let mut params = vec!["Extension(api): Extension<Arc<A>>".to_string()];
         for a in &ep.args {
             if a.kind == ArgKind::Path {
-                params.push(format!("Path({}): Path<{}>", camel(&a.name), wrap_opt_rs(&a.wit_type)));
+                params.push(format!(
+                    "Path({}): Path<{}>",
+                    camel(&a.name),
+                    wrap_opt_rs(&a.wit_type)
+                ));
             } else {
                 params.push(format!("Json(body): Json<{}>", wrap_opt_rs(&a.wit_type)));
             }
         }
-        let ret = if ep.returns == "unit" { "" } else { " -> impl IntoResponse" };
-        out += &format!("async fn {hname}<A: {}Api>({}){} {{\n", pascal(name), params.join(", "), ret);
+        let ret = if ep.returns == "unit" {
+            ""
+        } else {
+            " -> impl IntoResponse"
+        };
+        out += &format!(
+            "async fn {hname}<A: {}Api>({}){} {{\n",
+            pascal(name),
+            params.join(", "),
+            ret
+        );
 
-        let call_args: Vec<String> = std::iter::once("api".to_string()).chain(ep.args.iter().map(|a| {
-            if a.kind == ArgKind::Path { camel(&a.name) } else { "body".into() }
-        })).collect();
+        let call_args: Vec<String> = std::iter::once("api".to_string())
+            .chain(ep.args.iter().map(|a| {
+                if a.kind == ArgKind::Path {
+                    camel(&a.name)
+                } else {
+                    "body".into()
+                }
+            }))
+            .collect();
         if ep.returns == "unit" {
             out += &format!("    {}.{}().await;\n", call_args.join("."), camel(&ep.name));
             out += "    StatusCode::NO_CONTENT\n";
         } else {
-            out += &format!("    Json({}.{}().await)\n", call_args.join("."), camel(&ep.name));
+            out += &format!(
+                "    Json({}.{}().await)\n",
+                call_args.join("."),
+                camel(&ep.name)
+            );
         }
         out += "}\n\n";
     }
@@ -338,21 +449,47 @@ fn gen_ts(name: &str, records: &[Record], endpoints: &[Endpoint]) -> String {
         let body = ep.args.iter().find(|a| a.kind == ArgKind::Body);
         let paths: Vec<_> = ep.args.iter().filter(|a| a.kind == ArgKind::Path).collect();
 
-        let fn_params: Vec<String> = paths.iter().map(|a| format!("{}: {}", camel(&a.name), wrap_ts_type(&a.wit_type)))
-            .chain(body.iter().map(|a| format!("{}: {}", camel(&a.wit_type), wrap_ts_type(&a.wit_type))))
+        let fn_params: Vec<String> = paths
+            .iter()
+            .map(|a| format!("{}: {}", camel(&a.name), wrap_ts_type(&a.wit_type)))
+            .chain(
+                body.iter()
+                    .map(|a| format!("{}: {}", camel(&a.wit_type), wrap_ts_type(&a.wit_type))),
+            )
             .collect();
 
-        let url_parts: Vec<String> = std::iter::once(format!("${{BASE}}/api/{name}")).chain(paths.iter().map(|a| format!("${{{}}}", camel(&a.name)))).collect();
+        let url_parts: Vec<String> = std::iter::once(format!("${{BASE}}/api/{name}"))
+            .chain(paths.iter().map(|a| format!("${{{}}}", camel(&a.name))))
+            .collect();
         let url = url_parts.join(" + \"/\" + ");
 
         let body_code = if let Some(b) = body {
-            format!(",\n        body: JSON.stringify({}),\n        headers: {{ \"Content-Type\": \"application/json\" }}", camel(&b.wit_type))
-        } else { String::new() };
+            format!(
+                ",\n        body: JSON.stringify({}),\n        headers: {{ \"Content-Type\": \"application/json\" }}",
+                camel(&b.wit_type)
+            )
+        } else {
+            String::new()
+        };
 
-        let ret = if ep.returns == "unit" { "Promise<void>".into() } else { format!("Promise<{}>", wrap_ts_type(&ep.returns)) };
+        let ret = if ep.returns == "unit" {
+            "Promise<void>".into()
+        } else {
+            format!("Promise<{}>", wrap_ts_type(&ep.returns))
+        };
 
-        out += &format!("    async {}({}): {} {{\n", camel(&ep.name), fn_params.join(", "), ret);
-        out += &format!("      const res = await fetch({}, {{ method: \"{}\"{} }});\n", url, ep.method.to_uppercase(), body_code);
+        out += &format!(
+            "    async {}({}): {} {{\n",
+            camel(&ep.name),
+            fn_params.join(", "),
+            ret
+        );
+        out += &format!(
+            "      const res = await fetch({}, {{ method: \"{}\"{} }});\n",
+            url,
+            ep.method.to_uppercase(),
+            body_code
+        );
         if ep.returns == "unit" {
             out += "      if (!res.ok) throw new Error(res.statusText);\n";
         } else {
@@ -368,13 +505,17 @@ fn gen_ts(name: &str, records: &[Record], endpoints: &[Endpoint]) -> String {
 
 fn gen_cs(name: &str, records: &[Record], endpoints: &[Endpoint]) -> String {
     let pname = pascal(name);
-    let mut out = format!("// Generated by `damascus codegen` from {name}.wit — do not edit.\n\nusing System.Net.Http.Json;\nusing System.Text.Json.Serialization;\n\nnamespace DamascusUI.Gen;\n\n");
+    let mut out = format!(
+        "// Generated by `damascus codegen` from {name}.wit — do not edit.\n\nusing System.Net.Http.Json;\nusing System.Text.Json.Serialization;\n\nnamespace DamascusUI.Gen;\n\n"
+    );
 
     for r in records {
         out += &format!("public record {}(\n", pascal(&r.name));
-        let fields: Vec<String> = r.fields.iter().map(|f| {
-            format!("    {} {}", wrap_cs_type(&f.wit_type), pascal(&f.name))
-        }).collect();
+        let fields: Vec<String> = r
+            .fields
+            .iter()
+            .map(|f| format!("    {} {}", wrap_cs_type(&f.wit_type), pascal(&f.name)))
+            .collect();
         out += &fields.join(",\n");
         out += "\n);\n\n";
     }
@@ -402,7 +543,9 @@ fn gen_cs(name: &str, records: &[Record], endpoints: &[Endpoint]) -> String {
 
     // Source-gen JSON context
     let ctx_name = format!("{pname}JsonContext");
-    out += &format!("[JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]\n");
+    out.push_str(
+        "[JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]\n",
+    );
     for t in &serialized_types {
         out += &format!("[JsonSerializable(typeof({t}))]\n");
     }
@@ -415,11 +558,18 @@ fn gen_cs(name: &str, records: &[Record], endpoints: &[Endpoint]) -> String {
         let body = ep.args.iter().find(|a| a.kind == ArgKind::Body);
         let paths: Vec<_> = ep.args.iter().filter(|a| a.kind == ArgKind::Path).collect();
 
-        let fn_params: Vec<String> = paths.iter().map(|a| format!("{} {}", wrap_cs_type(&a.wit_type), pascal(&a.name)))
-            .chain(body.iter().map(|a| format!("{} {}", wrap_cs_type(&a.wit_type), camel(&a.wit_type))))
+        let fn_params: Vec<String> = paths
+            .iter()
+            .map(|a| format!("{} {}", wrap_cs_type(&a.wit_type), pascal(&a.name)))
+            .chain(
+                body.iter()
+                    .map(|a| format!("{} {}", wrap_cs_type(&a.wit_type), camel(&a.wit_type))),
+            )
             .collect();
 
-        let url_parts: Vec<String> = std::iter::once(format!("\"/api/{name}\"")).chain(paths.iter().map(|a| format!("${{{}}}", pascal(&a.name)))).collect();
+        let url_parts: Vec<String> = std::iter::once(format!("\"/api/{name}\""))
+            .chain(paths.iter().map(|a| format!("${{{}}}", pascal(&a.name))))
+            .collect();
         let url = url_parts.join(" + \"/\" + ");
 
         let http_method = match ep.method.as_str() {
@@ -429,27 +579,43 @@ fn gen_cs(name: &str, records: &[Record], endpoints: &[Endpoint]) -> String {
             _ => "GetAsync",
         };
 
-        let ret = if ep.returns == "unit" { "Task".into() } else { format!("Task<{}>", wrap_cs_type(&ep.returns)) };
+        let ret = if ep.returns == "unit" {
+            "Task".into()
+        } else {
+            format!("Task<{}>", wrap_cs_type(&ep.returns))
+        };
         let ret_type = wrap_cs_type(&ep.returns);
         let json_ret_type = ret_type.replace("[]", "Array");
 
-        out += &format!("    public async {ret} {}({})\n    {{\n", pascal(&ep.name), fn_params.join(", "));
+        out += &format!(
+            "    public async {ret} {}({})\n    {{\n",
+            pascal(&ep.name),
+            fn_params.join(", ")
+        );
 
         if ep.method == "get" || ep.method == "delete" {
             if ep.returns == "unit" {
                 out += &format!("        await http.{http_method}({url});\n");
             } else {
                 out += &format!("        var res = await http.{http_method}({url});\n");
-                out += &format!("        return (await res.Content.ReadFromJsonAsync(_json.{json_ret_type}))!;\n");
+                out += &format!(
+                    "        return (await res.Content.ReadFromJsonAsync(_json.{json_ret_type}))!;\n"
+                );
             }
         } else {
             let body_var_name = body.map_or("body".to_string(), |b| camel(&b.wit_type));
             let body_json_type = body.map_or(String::new(), |b| pascal(&b.wit_type));
             if ep.returns == "unit" {
-                out += &format!("        await http.{http_method}({url}, JsonContent.Create({body_var_name}, _json.{body_json_type}));\n");
+                out += &format!(
+                    "        await http.{http_method}({url}, JsonContent.Create({body_var_name}, _json.{body_json_type}));\n"
+                );
             } else {
-                out += &format!("        var res = await http.{http_method}({url}, JsonContent.Create({body_var_name}, _json.{body_json_type}));\n");
-                out += &format!("        return (await res.Content.ReadFromJsonAsync(_json.{json_ret_type}))!;\n");
+                out += &format!(
+                    "        var res = await http.{http_method}({url}, JsonContent.Create({body_var_name}, _json.{body_json_type}));\n"
+                );
+                out += &format!(
+                    "        return (await res.Content.ReadFromJsonAsync(_json.{json_ret_type}))!;\n"
+                );
             }
         }
         out += "    }\n\n";

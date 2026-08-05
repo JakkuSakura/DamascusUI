@@ -365,9 +365,18 @@ pub enum MenuItem {
     #[serde(rename = "action")]
     Action { id: String, label: String },
     #[serde(rename = "check")]
-    Check { id: String, label: String, checked: bool },
+    Check {
+        id: String,
+        label: String,
+        checked: bool,
+    },
     #[serde(rename = "radio")]
-    Radio { id: String, label: String, group: String, selected: bool },
+    Radio {
+        id: String,
+        label: String,
+        group: String,
+        selected: bool,
+    },
     #[serde(rename = "separator")]
     Separator,
     #[serde(rename = "submenu")]
@@ -517,7 +526,10 @@ pub enum ViewerMenuItem {
     #[serde(rename = "separator")]
     Separator,
     #[serde(rename = "submenu")]
-    Submenu { label: String, items: Vec<ViewerMenuItem> },
+    Submenu {
+        label: String,
+        items: Vec<ViewerMenuItem>,
+    },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

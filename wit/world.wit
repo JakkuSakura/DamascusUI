@@ -11,9 +11,5 @@
 world damascus-ui {
     import types;
     import window;
-    import render;
-    import input;
-    import menu;
-    import dialog;
-    import tray;
+    import viewer;
 }

@@ -40,7 +40,7 @@ impl AppBuilder {
     /// Register a route. The `method_router` comes from `get()`, `post()`, etc.
     ///
     /// ```ignore
-    /// use damascus_core::prelude::*;
+    /// use damascus::prelude::*;
     ///
     /// App::builder()
     ///     .route("/api/todos", get(list_todos).post(create_todo))
@@ -55,7 +55,7 @@ impl AppBuilder {
     /// like [`Extension`] state, CORS, tracing, etc.
     ///
     /// ```ignore
-    /// use damascus_core::prelude::*;
+    /// use damascus::prelude::*;
     ///
     /// let state = std::sync::Arc::new(AppState::new());
     /// App::builder()
@@ -66,11 +66,8 @@ impl AppBuilder {
     pub fn layer<L>(mut self, layer: L) -> Self
     where
         L: tower::Layer<axum::routing::Route> + Clone + Send + Sync + 'static,
-        L::Service: tower::Service<axum::http::Request<axum::body::Body>>
-            + Clone
-            + Send
-            + Sync
-            + 'static,
+        L::Service:
+            tower::Service<axum::http::Request<axum::body::Body>> + Clone + Send + Sync + 'static,
         <L::Service as tower::Service<axum::http::Request<axum::body::Body>>>::Response:
             axum::response::IntoResponse + 'static,
         <L::Service as tower::Service<axum::http::Request<axum::body::Body>>>::Error:

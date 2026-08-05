@@ -1,10 +1,8 @@
 //! Re-exports of the types you need to build a Damascus app.
-//! Import this with `use damascus_core::prelude::*`.
+//! Import this with `use damascus::prelude::*`.
 
 pub use axum::{
-    Extension,
-    Json,
-    Router,
+    Extension, Json, Router,
     extract::{Path, Query, State},
     http::StatusCode,
     response::IntoResponse,

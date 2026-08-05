@@ -41,15 +41,10 @@ fn main() {
 
     let app = App::builder()
         .config(Config::new().port(3001).app_name("Todos"))
-        .route(
-            "/api/todos",
-            get(handlers::list).post(handlers::create),
-        )
+        .route("/api/todos", get(handlers::list).post(handlers::create))
         .route(
             "/api/todos/{id}",
-            get(get_one)
-                .put(handlers::update)
-                .delete(handlers::delete),
+            get(get_one).put(handlers::update).delete(handlers::delete),
         )
         .layer(Extension(models::init_db()))
         .fallback(serve_frontend)
